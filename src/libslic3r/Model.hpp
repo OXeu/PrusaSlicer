@@ -34,6 +34,8 @@
 #include <optional>
 #include <random>
 
+#include "Utils/CerealUtils.hpp"
+
 namespace cereal {
 	class BinaryInputArchive;
 	class BinaryOutputArchive;
@@ -110,7 +112,7 @@ typedef std::string t_model_material_id;
 typedef std::string t_model_material_attribute;
 typedef std::map<t_model_material_attribute, std::string> t_model_material_attributes;
 
-typedef std::map<t_model_material_id, ModelMaterial*> ModelMaterialMap;
+typedef std::map<t_model_material_id, std::shared_ptr<ModelMaterial>> ModelMaterialMap;
 typedef std::vector<ModelObject*> ModelObjectPtrs;
 typedef std::vector<ModelVolume*> ModelVolumePtrs;
 typedef std::vector<ModelInstance*> ModelInstancePtrs;
@@ -166,10 +168,12 @@ private:
 
     // To be accessed by the Model.
     friend class Model;
+public:
 	// Constructor, which assigns a new unique ID to the material and to its config.
 	ModelMaterial(Model *model) : m_model(model) { assert(this->id().valid()); }
 	// Copy constructor copies the IDs of the ModelMaterial and its config, and m_model!
 	ModelMaterial(const ModelMaterial &rhs) = default;
+private:
 	void set_model(Model *model) { m_model = model; }
 	void set_new_unique_id() { ObjectBase::set_new_unique_id(); this->config.set_new_unique_id(); }
 
@@ -180,8 +184,7 @@ private:
 	ModelMaterial() : ObjectBase(-1), config(-1) { assert(this->id().invalid()); assert(this->config.id().invalid()); }
 	template<class Archive> void serialize(Archive &ar) { 
 		assert(this->id().invalid()); assert(this->config.id().invalid());
-		Internal::StaticSerializationWrapper<ModelConfigObject> config_wrapper(config);
-		ar(attributes, config_wrapper);
+		ar(attributes, config);
 		// assert(this->id().valid()); assert(this->config.id().valid());
 	}
 
@@ -538,7 +541,7 @@ public:
     bool is_cut() const { return cut_id.valid(); }
     bool has_connectors() const;
 
-private:
+public:
     friend class Model;
     // This constructor assigns new ID to this ModelObject and its config.
     explicit ModelObject(Model* model) : m_model(model), origin_translation(Vec3d::Zero())
@@ -666,17 +669,6 @@ private:
         assert(this->config.id().invalid());
         assert(this->layer_height_profile.id().invalid());
 	}
-	template<class Archive> void serialize(Archive &ar) {
-		ar(cereal::base_class<ObjectBase>(this));
-		Internal::StaticSerializationWrapper<ModelConfigObject> config_wrapper(config);
-        Internal::StaticSerializationWrapper<LayerHeightProfile> layer_heigth_profile_wrapper(layer_height_profile);
-        ar(name, input_file, instances, volumes, config_wrapper, layer_config_ranges, layer_heigth_profile_wrapper, 
-            sla_support_points, sla_points_status, sla_drain_holes, printable, origin_translation,
-            m_bounding_box_approx, m_bounding_box_approx_valid, 
-            m_bounding_box_exact, m_bounding_box_exact_valid, m_min_max_z_valid,
-            m_raw_bounding_box, m_raw_bounding_box_valid, m_raw_mesh_bounding_box, m_raw_mesh_bounding_box_valid,
-            cut_connectors, cut_id);
-	}
 
     // Called by Print::validate() from the UI thread.
     unsigned int update_instances_print_volume_state(const BuildVolume &build_volume);
@@ -758,10 +750,17 @@ public:
         bool is_converted_from_meters{ false };
         bool is_from_builtin_objects{ false };
 
-        template<class Archive> void serialize(Archive& ar) { 
+        template<class Archive> void serialize(Archive& ar) {
             //FIXME Vojtech: Serialize / deserialize only if the Source is set.
             // likely testing input_file or object_idx would be sufficient.
-            ar(input_file, object_idx, volume_idx, mesh_offset, transform, is_converted_from_inches, is_converted_from_meters, is_from_builtin_objects);
+            ar(input_file);
+            ar(object_idx);
+            ar(volume_idx);
+            ar(mesh_offset);
+            ar(transform);
+            ar(is_converted_from_inches);
+            ar(is_converted_from_meters);
+            ar(is_from_builtin_objects);
         }
     };
     Source              source;
@@ -1071,6 +1070,7 @@ private:
 
 	friend class cereal::access;
 	friend class UndoRedo::StackImpl;
+public:
 	// Used for deserialization, therefore no IDs are allocated.
 	ModelVolume() : ObjectBase(-1), config(-1), supported_facets(-1), seam_facets(-1), mm_segmentation_facets(-1), fuzzy_skin_facets(-1), object(nullptr) {
 		assert(this->id().invalid());
@@ -1083,34 +1083,34 @@ private:
 	template<class Archive> void load(Archive &ar) {
 		bool has_convex_hull;
         ar(name, source, m_mesh, m_type, m_material_id, m_transformation, m_is_splittable, has_convex_hull, cut_info);
-        cereal::load_by_value(ar, supported_facets);
-        cereal::load_by_value(ar, seam_facets);
-        cereal::load_by_value(ar, mm_segmentation_facets);
-        cereal::load_by_value(ar, fuzzy_skin_facets);
-        cereal::load_by_value(ar, config);
-        cereal::load(ar, text_configuration);
-        cereal::load(ar, emboss_shape);
-		assert(m_mesh);
-		if (has_convex_hull) {
-			cereal::load_optional(ar, m_convex_hull);
-			if (! m_convex_hull && ! m_mesh->empty())
-				// The convex hull was released from the Undo / Redo stack to conserve memory. Recalculate it.
-				this->calculate_convex_hull();
-		} else
-			m_convex_hull.reset();
+  //       cereal::load_by_value(ar, supported_facets);
+  //       cereal::load_by_value(ar, seam_facets);
+  //       cereal::load_by_value(ar, mm_segmentation_facets);
+  //       cereal::load_by_value(ar, fuzzy_skin_facets);
+  //       cereal::load_by_value(ar, config);
+  //       cereal::load(ar, text_configuration);
+  //       cereal::load(ar, emboss_shape);
+		// assert(m_mesh);
+		// if (has_convex_hull) {
+		// 	cereal::load_optional(ar, m_convex_hull);
+		// 	if (! m_convex_hull && ! m_mesh->empty())
+		// 		// The convex hull was released from the Undo / Redo stack to conserve memory. Recalculate it.
+		// 		this->calculate_convex_hull();
+		// } else
+		// 	m_convex_hull.reset();
 	}
 	template<class Archive> void save(Archive &ar) const {
 		bool has_convex_hull = m_convex_hull.get() != nullptr;
         ar(name, source, m_mesh, m_type, m_material_id, m_transformation, m_is_splittable, has_convex_hull, cut_info);
-        cereal::save_by_value(ar, supported_facets);
-        cereal::save_by_value(ar, seam_facets);
-        cereal::save_by_value(ar, mm_segmentation_facets);
-        cereal::save_by_value(ar, fuzzy_skin_facets);
-        cereal::save_by_value(ar, config);
-        cereal::save(ar, text_configuration);
-        cereal::save(ar, emboss_shape);
-		if (has_convex_hull)
-			cereal::save_optional(ar, m_convex_hull);
+  //       cereal::save_by_value(ar, supported_facets);
+  //       cereal::save_by_value(ar, seam_facets);
+  //       cereal::save_by_value(ar, mm_segmentation_facets);
+  //       cereal::save_by_value(ar, fuzzy_skin_facets);
+  //       cereal::save_by_value(ar, config);
+  //       cereal::save(ar, text_configuration);
+  //       cereal::save(ar, emboss_shape);
+		// if (has_convex_hull)
+		// 	cereal::save_optional(ar, m_convex_hull);
 	}
 };
 
@@ -1191,6 +1191,7 @@ public:
     bool is_printable() const { return object->printable && printable && (print_volume_state == ModelInstancePVS_Inside); }
 
     void invalidate_object_bounding_box() { object->invalidate_bounding_box(); }
+    ModelInstance(const ModelInstance &rhs) = default;
 
 protected:
     friend class Print;
@@ -1198,7 +1199,6 @@ protected:
     friend class Model;
     friend class ModelObject;
 
-    explicit ModelInstance(const ModelInstance &rhs) = default;
     void     set_model_object(ModelObject *model_object) { object = model_object; }
 
 private:
@@ -1206,21 +1206,25 @@ private:
     ModelObject* object;
 
     // Constructor, which assigns a new unique ID.
-    explicit ModelInstance(ModelObject* object) : print_volume_state(ModelInstancePVS_Inside), object(object) { assert(this->id().valid()); }
+    ModelInstance(ModelObject* object) : print_volume_state(ModelInstancePVS_Inside), object(object) { assert(this->id().valid()); }
     // Constructor, which assigns a new unique ID.
-    explicit ModelInstance(ModelObject *object, const ModelInstance &other) :
+    ModelInstance(ModelObject *object, const ModelInstance &other) :
         m_transformation(other.m_transformation), print_volume_state(ModelInstancePVS_Inside), printable(other.printable), object(object) { assert(this->id().valid() && this->id() != other.id()); }
 
-    explicit ModelInstance(ModelInstance &&rhs) = delete;
-    ModelInstance& operator=(const ModelInstance &rhs) = delete;
-    ModelInstance& operator=(ModelInstance &&rhs) = delete;
+    // ModelInstance(ModelInstance &&rhs) = delete;
+    // ModelInstance& operator=(const ModelInstance &rhs) = delete;
+    // ModelInstance& operator=(ModelInstance &&rhs) = delete;
 
 	friend class cereal::access;
 	friend class UndoRedo::StackImpl;
 	// Used for deserialization, therefore no IDs are allocated.
+public:
 	ModelInstance() : ObjectBase(-1), object(nullptr) { assert(this->id().invalid()); }
 	template<class Archive> void serialize(Archive &ar) {
-        ar(m_transformation, print_volume_state, printable);
+        // todo ar(m_transformation);
+	    ar(print_volume_state, printable);
+		printf("model object: %p", object);
+	    CEREAL_AR_PTR_SAVE(object)
     }
 };
 
@@ -1305,8 +1309,8 @@ public:
     ModelMaterial* add_material(t_model_material_id material_id);
     ModelMaterial* add_material(t_model_material_id material_id, const ModelMaterial &other);
     ModelMaterial* get_material(t_model_material_id material_id) {
-        ModelMaterialMap::iterator i = this->materials.find(material_id);
-        return (i == this->materials.end()) ? nullptr : i->second;
+        auto i = this->materials.find(material_id);
+        return (i == this->materials.end() ? nullptr : i->second).get();
     }
 
     void          delete_material(t_model_material_id material_id);
@@ -1355,8 +1359,17 @@ private:
 
 	friend class cereal::access;
 	friend class UndoRedo::StackImpl;
-	template<class Archive> void serialize(Archive &ar) {
-		ar(materials, objects, wipe_tower_vector);
+	template<class Archive> void save(Archive &ar) const {
+	    printf("Model: materials\n");
+		ar(materials, wipe_tower_vector);
+	    printf("Model: objects\n");
+	    CEREAL_AR_VEC_PTR_SAVE(objects)
+    }
+    template<class Archive> void load(Archive &ar) {
+	    printf("Model: materials\n");
+		ar(materials, wipe_tower_vector);
+		printf("Model: objects\n");
+	    CEREAL_AR_VEC_PTR_LOAD(ModelObject, objects);
     }
 };
 
@@ -1413,6 +1426,47 @@ namespace cereal
 {
 	template <class Archive> struct specialize<Archive, Slic3r::ModelVolume, cereal::specialization::member_load_save> {};
 	template <class Archive> struct specialize<Archive, Slic3r::ModelConfigObject, cereal::specialization::member_serialize> {};
+	template <class Archive> struct specialize<Archive, Slic3r::ModelObject, cereal::specialization::non_member_load_save> {};
+	template<class Archive> void save(Archive &ar, const Slic3r::ModelObject& m) {
+        ar(cereal::base_class<Slic3r::ObjectBase>(&m));
+        // Internal::StaticSerializationWrapper<ModelConfigObject> config_wrapper(config);
+        // Internal::StaticSerializationWrapper<LayerHeightProfile> layer_heigth_profile_wrapper(layer_height_profile);
+	    printf("ModelObject: name\n");
+        ar(m.name, m.input_file);
+    	printf("ModelObject: volumes\n");
+        CEREAL_AR_VEC_PTR_SAVE(m.volumes)
+    	printf("ModelObject: config\n");
+        ar(m.config);
+    	printf("ModelObject: layer_config_ranges\n");
+        ar(m.layer_config_ranges);
+        ar(m.layer_height_profile);
+    	printf("ModelObject: sla_support_points\n");
+        ar(m.sla_support_points, m.sla_points_status, m.sla_drain_holes, m.printable, m.origin_translation,
+            m.m_bounding_box_approx, m.m_bounding_box_approx_valid,
+            m.m_bounding_box_exact, m.m_bounding_box_exact_valid, m.m_min_max_z_valid,
+            m.m_raw_bounding_box, m.m_raw_bounding_box_valid, m.m_raw_mesh_bounding_box, m.m_raw_mesh_bounding_box_valid,
+            m.cut_connectors, m.cut_id);
+    }
+	template<class Archive> void load(Archive &ar, Slic3r::ModelObject& m) {
+        ar(cereal::base_class<Slic3r::ObjectBase>(&m));
+        // Internal::StaticSerializationWrapper<ModelConfigObject> config_wrapper(config);
+        // Internal::StaticSerializationWrapper<LayerHeightProfile> layer_heigth_profile_wrapper(layer_height_profile);
+	    printf("ModelObject: name\n");
+        ar(m.name, m.input_file);
+    	printf("ModelObject: volumes\n");
+        CEREAL_AR_VEC_PTR_LOAD(Slic3r::ModelVolume, m.volumes)
+    	printf("ModelObject: config\n");
+        ar(m.config);
+    	printf("ModelObject: layer_config_ranges\n");
+        ar(m.layer_config_ranges);
+        ar(m.layer_height_profile);
+    	printf("ModelObject: sla_support_points\n");
+        ar(m.sla_support_points, m.sla_points_status, m.sla_drain_holes, m.printable, m.origin_translation,
+            m.m_bounding_box_approx, m.m_bounding_box_approx_valid,
+            m.m_bounding_box_exact, m.m_bounding_box_exact_valid, m.m_min_max_z_valid,
+            m.m_raw_bounding_box, m.m_raw_bounding_box_valid, m.m_raw_mesh_bounding_box, m.m_raw_mesh_bounding_box_valid,
+            m.cut_connectors, m.cut_id);
+    }
 }
 
 #endif /* slic3r_Model_hpp_ */

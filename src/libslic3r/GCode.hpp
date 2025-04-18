@@ -44,6 +44,9 @@
 #include "EdgeGrid.hpp"
 #include "tcbspan/span.hpp"
 
+#include <utility>
+#include <zmqpp/zmqpp.hpp>
+
 #include <memory>
 #include <map>
 #include <string>
@@ -179,6 +182,7 @@ private:
 
     class GCodeOutputStream {
     public:
+        GCodeOutputStream(std::string path, FILE *f, GCodeProcessor &processor) : path(std::move(path)),f(f), m_processor(processor) {}
         GCodeOutputStream(FILE *f, GCodeProcessor &processor) : f(f), m_processor(processor) {}
         ~GCodeOutputStream() { this->close(); }
 
@@ -207,6 +211,7 @@ private:
         // Formats and write into a file the given data. 
         void write_format(const char* format, ...);
 
+        std::string path;
     private:
         FILE             *f { nullptr };
         // Find-replace post-processor to be called before GCodePostProcessor.
@@ -216,6 +221,18 @@ private:
         GCodeProcessor   &m_processor;
     };
     void            _do_export(Print &print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb);
+    void            _do_export_rpc(Print &print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb);
+
+    zmqpp::context context;
+    zmqpp::socket* socket = nullptr;
+    std::thread* request_handler_thread = nullptr;
+
+    void operator()() const;
+
+    void start_server(bool is_server);
+    void stop_server();
+    void send_rpc(int op, const std::string &data) const;
+    void handle_rpc(int op, const std::string& data);
 
     static ObjectsLayerToPrint         		                     collect_layers_to_print(const PrintObject &object);
     static std::vector<std::pair<coordf_t, ObjectsLayerToPrint>> collect_layers_to_print(const Print &print);

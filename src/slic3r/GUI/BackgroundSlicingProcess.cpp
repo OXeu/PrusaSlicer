@@ -43,6 +43,9 @@
 #include "RemovableDriveManager.hpp"
 
 #include "slic3r/GUI/Plater.hpp"
+#include "zmqpp/context.hpp"
+#include "zmqpp/message.hpp"
+#include "zmqpp/socket.hpp"
 
 namespace Slic3r {
 

@@ -117,6 +117,18 @@ struct SlicingParameters
     coordf_t 	object_print_z_uncompensated_max { 0 };
     // Scaling factor for compensating shrinkage in Z-axis.
     coordf_t    object_shrinkage_compensation_z { 0 };
+
+    friend class cereal::access;
+    template<class Archive>
+      void serialize(Archive & ar)
+    {
+        ar(valid, base_raft_layers, interface_raft_layers, base_raft_layer_height, interface_raft_layer_height,
+           contact_raft_layer_height, layer_height, min_layer_height, max_layer_height, max_suport_layer_height,
+           first_print_layer_height, first_object_layer_height, first_object_layer_bridging, soluble_interface,
+           gap_raft_object, gap_object_support, gap_support_object, raft_base_top_z, raft_interface_top_z,
+           raft_contact_top_z, object_print_z_min, object_print_z_max, object_print_z_uncompensated_max,
+           object_shrinkage_compensation_z);
+    }
 };
 static_assert(IsTriviallyCopyable<SlicingParameters>::value, "SlicingParameters class is not POD (and it should be - see constructor).");
 

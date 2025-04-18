@@ -41,7 +41,11 @@ public:
 
 private:
 	friend class cereal::access;
-	template<class Archive> void serialize(Archive &ar) { ar(id); }
+	template<class Archive> void serialize(Archive &ar) {
+		printf("ObjectID: start\n");
+		ar(id);
+		printf("ObjectID: end\n");
+	}
 };
 
 // Base for Model, ModelObject, ModelVolume, ModelInstance or ModelMaterial to provide a unique ID
@@ -89,7 +93,11 @@ private:
 
 	friend class cereal::access;
 	friend class Slic3r::UndoRedo::StackImpl;
-	template<class Archive> void serialize(Archive &ar) { ar(m_id); }
+	template<class Archive> void serialize(Archive &ar) {
+		printf("ObjectBase\n");
+		ar(m_id);
+		printf("ObjectBase: end\n");
+	}
 protected: // #vbCHECKME && #ysFIXME
     ObjectBase(const ObjectID id) : m_id(id) {}
 private:
