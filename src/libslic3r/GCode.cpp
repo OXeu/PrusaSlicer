@@ -55,6 +55,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <cereal/archives/xml.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/find.hpp>
@@ -929,6 +930,11 @@ static inline std::optional<std::string> find_M84(const std::string &gcode) {
 
 void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb)
 {
+    std::ofstream os("out.xml");
+    {
+        cereal::XMLOutputArchive ar(os);
+        ar(print);
+    }
     const bool export_to_binary_gcode = print.full_print_config().option<ConfigOptionBool>("binary_gcode")->value;
 
     std::string prepared_by_info;
