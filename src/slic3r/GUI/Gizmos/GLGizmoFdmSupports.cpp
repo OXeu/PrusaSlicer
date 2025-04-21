@@ -415,7 +415,7 @@ void GLGizmoFdmSupports::apply_data_from_backend()
     }
 
     // find the respective PrintObject, we need a pointer to it
-    for (const PrintObject *po : m_parent.fff_print()->objects()) {
+    for (const std::shared_ptr<PrintObject> &po : m_parent.fff_print()->objects()) {
         if (po->model_object()->id() == mo->id()) {
             std::unordered_map<size_t, TriangleSelectorWrapper> selectors;
             SupportSpotsGenerator::SupportPoints support_points = po->shared_regions()->generated_support_points->support_points;
@@ -506,7 +506,7 @@ bool GLGizmoFdmSupports::has_backend_supports()
 
     // find PrintObject with this ID
     bool done = false;
-    for (const PrintObject *po : m_parent.fff_print()->objects()) {
+    for (const std::shared_ptr<PrintObject> &po : m_parent.fff_print()->objects()) {
         if (po->model_object()->id() == mo->id())
             done = done || po->is_step_done(posSupportSpotsSearch);
     }

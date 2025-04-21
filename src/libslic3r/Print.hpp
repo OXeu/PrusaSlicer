@@ -288,7 +288,8 @@ public:
     // Trafo with the center_offset() applied after the transformation, to center the object in XY before slicing.
     Transform3d                  trafo_centered() const
         { Transform3d t = this->trafo(); t.pretranslate(Vec3d(- unscale<double>(m_center_offset.x()), - unscale<double>(m_center_offset.y()), 0)); return t; }
-    const PrintInstances&        instances() const      { return m_instances; }
+
+    PrintInstances instances() const      { return m_instances; }
 
     // Whoever will get a non-const pointer to PrintObject will be able to modify its layers.
     LayerPtrs&                   layers()               { return m_layers; }
@@ -376,7 +377,6 @@ public:
     // Helpers to project custom facets on slices
     void project_and_append_custom_facets(bool seam, TriangleStateType type, std::vector<Polygons>& expolys) const;
 
-private:
     // to be called from Print only.
     friend class Print;
     friend class PrintBaseWithState<PrintStep, psCount>;
@@ -389,6 +389,7 @@ private:
         clear_support_layers();
     }
 
+private:
     void                    config_apply(const ConfigBase &other, bool ignore_nonexistent = false) { m_config.apply(other, ignore_nonexistent); }
     void                    config_apply_only(const ConfigBase &other, const t_config_option_keys &keys, bool ignore_nonexistent = false) { m_config.apply_only(other, keys, ignore_nonexistent); }
     PrintBase::ApplyStatus  set_instances(PrintInstances &&instances);
@@ -715,18 +716,18 @@ public:
     const PrintRegionConfig&    default_region_config() const { return m_default_region_config; }
     SpanOfConstPtrs<PrintObject> objects() const { return SpanOfConstPtrs<PrintObject>(m_objects.data(), m_objects.size()); }
     PrintObject*                get_object(size_t idx) { return m_objects[idx].get(); }
-    const PrintObject*          get_object(size_t idx) const { return m_objects[idx].get(); }
-    const PrintObject* get_print_object_by_model_object_id(ObjectID object_id) const {
+    const std::shared_ptr<PrintObject>          get_object(size_t idx) const { return m_objects[idx]; }
+    const std::shared_ptr<PrintObject> get_print_object_by_model_object_id(ObjectID object_id) const {
         const auto it = std::find_if(m_objects.begin(), m_objects.end(),
                                [object_id](const auto &obj) { return obj->model_object()->id() == object_id; });
-        return (it == m_objects.end()) ? nullptr : it->get();
+        return (it == m_objects.end()) ? nullptr : *it;
     }
     // PrintObject by its ObjectID, to be used to uniquely bind slicing warnings to their source PrintObjects
     // in the notification center.
-    const PrintObject*          get_object(ObjectID object_id) const {
+    const std::shared_ptr<PrintObject>          get_object(ObjectID object_id) const {
         const auto it = std::find_if(m_objects.begin(), m_objects.end(),
             [object_id](const auto &obj) { return obj->id() == object_id; });
-        return (it == m_objects.end()) ? nullptr : it->get();
+        return (it == m_objects.end()) ? nullptr : *it;
     }
     // How many of PrintObject::copies() over all print objects are there?
     // If zero, then the print is empty and the print shall not be executed.

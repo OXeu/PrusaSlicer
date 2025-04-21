@@ -30,8 +30,6 @@ struct indexed_triangle_set;
 
 namespace Slic3r {
 
-class PrintObject;
-
 namespace FillAdaptive
 {
 

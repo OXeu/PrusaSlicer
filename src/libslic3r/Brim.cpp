@@ -64,7 +64,7 @@ static float max_brim_width(const SpanOfConstPtrs<PrintObject> &objects)
 {
     assert(!objects.empty());
     return float(std::accumulate(objects.begin(), objects.end(), 0.,
-                                 [](double partial_result, const PrintObject *object) {
+                                 [](double partial_result, const std::shared_ptr<PrintObject> &object) {
                                      return std::max(partial_result, object->config().brim_type == btNoBrim ? 0. : object->config().brim_width.value);
                                  }));
 }
@@ -587,7 +587,7 @@ ExtrusionEntityCollection make_brim(const Print &print, PrintTryCancel try_cance
     }
 #endif // BRIM_DEBUG_TO_SVG
 
-    const bool could_brim_intersects_skirt = std::any_of(print.objects().begin(), print.objects().end(), [&print](const PrintObject *object) {
+    const bool could_brim_intersects_skirt = std::any_of(print.objects().begin(), print.objects().end(), [&print](const std::shared_ptr<PrintObject> &object) {
         const BrimType &bt = object->config().brim_type;
         return (bt == btOuterOnly || bt == btOuterAndInner) && print.config().skirt_distance.value < object->config().brim_width;
     });

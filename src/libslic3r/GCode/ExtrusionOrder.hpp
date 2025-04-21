@@ -41,7 +41,7 @@ struct ObjectLayerToPrint
     const Layer *object_layer;
     const SupportLayer *support_layer;
     const Layer *layer() const { return (object_layer != nullptr) ? object_layer : support_layer; }
-    const PrintObject *object() const {
+    const auto &object() const {
         return (this->layer() != nullptr) ? this->layer()->object() : nullptr;
     }
     coordf_t print_z() const {

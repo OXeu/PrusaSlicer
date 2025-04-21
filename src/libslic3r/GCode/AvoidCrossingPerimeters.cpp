@@ -1117,7 +1117,7 @@ static Polygons get_boundary_external(const Layer &layer)
     ExPolygons  supports_boundary;
 #endif
     // Collect all holes for all printed objects and their instances, which will be printed at the same time as passed "layer".
-    for (const PrintObject *object : layer.object()->print()->objects()) {
+    for (const std::shared_ptr<PrintObject> &object : layer.object()->print()->objects()) {
         Polygons   holes_per_obj;
 #ifdef INCLUDE_SUPPORTS_IN_BOUNDARY
         ExPolygons supports_per_obj;
@@ -1611,7 +1611,7 @@ static ExPolygons get_boundary_external(const Layer &layer)
     const float perimeter_offset  = perimeter_spacing / 2.f;
     ExPolygons  boundary;
     // Collect all polygons for all printed objects and their instances, which will be printed at the same time as passed "layer".
-    for (const PrintObject *object : layer.object()->print()->objects()) {
+    for (const std::shared_ptr<PrintObject> &object : layer.object()->print()->objects()) {
         ExPolygons polygons_per_obj;
         //FIXME with different layering, layers on other objects will not be found at this object's print_z.
         // Search an overlap of layers?

@@ -27,7 +27,7 @@ class PrintObject;
 class PrintObjectSupportMaterial
 {
 public:
-	PrintObjectSupportMaterial(const PrintObject *object, const SlicingParameters &slicing_params);
+	PrintObjectSupportMaterial(const std::shared_ptr<PrintObject> &object, const SlicingParameters &slicing_params);
 
 	// Is raft enabled?
 	bool 		has_raft() 					const { return m_slicing_params.has_raft(); }

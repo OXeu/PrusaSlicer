@@ -46,7 +46,7 @@ AABBTreeLines::LinesDistancer<ObjectOrExtrusionLinef> get_previous_layer_distanc
 ) {
     std::vector<ObjectOrExtrusionLinef> lines;
     for (const GCodeGenerator::ObjectLayerToPrint &object_to_print : objects_to_print) {
-        if (const PrintObject *object = object_to_print.object(); object) {
+        if (const std::shared_ptr<PrintObject> &object = object_to_print.object(); object) {
             const size_t object_layer_idx = &object_to_print - &objects_to_print.front();
             for (const PrintInstance &instance : object->instances()) {
                 const size_t instance_idx = &instance - &object->instances().front();

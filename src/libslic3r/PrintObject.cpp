@@ -1812,7 +1812,7 @@ void PrintObject::bridge_over_infill()
     // SECTION to gather and filter surfaces for expanding, and then cluster them by layer
     {
         tbb::concurrent_vector<CandidateSurface> candidate_surfaces;
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, this->layers().size()), [po = static_cast<const PrintObject *>(this),
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, this->layers().size()), [po = static_cast<const std::shared_ptr<PrintObject> &>(this),
                                                                                  &candidate_surfaces](tbb::blocked_range<size_t> r) {
             PRINT_OBJECT_TIME_LIMIT_MILLIS(PRINT_OBJECT_TIME_LIMIT_DEFAULT);
             for (size_t lidx = r.begin(); lidx < r.end(); lidx++) {
@@ -1996,7 +1996,7 @@ void PrintObject::bridge_over_infill()
             layers_to_generate_infill.push_back(pair.first - 1);
         }
 
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, layers_to_generate_infill.size()), [po = static_cast<const PrintObject *>(this),
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, layers_to_generate_infill.size()), [po = static_cast<const std::shared_ptr<PrintObject> &>(this),
                                                                                             &layers_to_generate_infill,
                                                                                             &infill_lines](tbb::blocked_range<size_t> r) {
             PRINT_OBJECT_TIME_LIMIT_MILLIS(PRINT_OBJECT_TIME_LIMIT_DEFAULT);
@@ -2071,7 +2071,7 @@ void PrintObject::bridge_over_infill()
     }
 
     // LAMBDA to gather areas with sparse infill deep enough that we can fit thick bridges there.
-    auto gather_areas_w_depth = [target_flow_height_factor](const PrintObject *po, int lidx, float target_flow_height) {
+    auto gather_areas_w_depth = [target_flow_height_factor](const std::shared_ptr<PrintObject> &po, int lidx, float target_flow_height) {
         // Gather layers sparse infill areas, to depth defined by used bridge flow
         ExPolygons layers_sparse_infill{};
         ExPolygons not_sparse_infill{};
@@ -2350,7 +2350,7 @@ void PrintObject::bridge_over_infill()
         return expanded_bridged_area;
     };
 
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, clustered_layers_for_threads.size()), [po = static_cast<const PrintObject *>(this),
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, clustered_layers_for_threads.size()), [po = static_cast<const std::shared_ptr<PrintObject> &>(this),
                                                                                            target_flow_height_factor, &surfaces_by_layer,
                                                                                            &clustered_layers_for_threads,
                                                                                            gather_areas_w_depth, &infill_lines,

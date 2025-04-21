@@ -1733,7 +1733,7 @@ void GCodeViewer::load_shells(const Print& print)
         return;
 
     // adds objects' volumes 
-    for (const PrintObject* obj : print.objects()) {
+    for (const std::shared_ptr<PrintObject> obj : print.objects()) {
         const ModelObject* model_obj = obj->model_object();
         int object_id = -1;
         const ModelObjectPtrs model_objects = wxGetApp().plater()->model().objects;

@@ -87,7 +87,7 @@ private:
     std::unordered_set<size_t> taken_cells{};
 
 public:
-    SupportGridFilter(const PrintObject *po, float voxel_size)
+    SupportGridFilter(const std::shared_ptr<PrintObject> &po, float voxel_size)
     {
         cell_size = Vec3f(voxel_size, voxel_size, voxel_size);
 
@@ -247,7 +247,7 @@ SliceConnection estimate_slice_connection(size_t slice_idx, const Layer *layer)
 };
 
 using PrecomputedSliceConnections = std::vector<std::vector<SliceConnection>>;
-PrecomputedSliceConnections precompute_slices_connections(const PrintObject *po)
+PrecomputedSliceConnections precompute_slices_connections(const std::shared_ptr<PrintObject> &po)
 {
     PrecomputedSliceConnections result{};
     for (size_t lidx = 0; lidx < po->layer_count(); lidx++) {
@@ -1228,7 +1228,7 @@ void debug_export(const SupportPoints& support_points,const PartialObjects& obje
 }
 #endif
 
-std::tuple<SupportPoints, PartialObjects> full_search(const PrintObject *po, const PrintTryCancel& cancel_func, const Params &params)
+std::tuple<SupportPoints, PartialObjects> full_search(const std::shared_ptr<PrintObject> &po, const PrintTryCancel& cancel_func, const Params &params)
 {
     auto precomputed_slices_connections = precompute_slices_connections(po);
     auto results = check_stability(po, precomputed_slices_connections, cancel_func, params);

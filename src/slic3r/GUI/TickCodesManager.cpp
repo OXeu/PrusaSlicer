@@ -111,7 +111,7 @@ std::array<int, 2> TickCodeManager::get_active_extruders_for_tick(int tick, Mode
     return extruders;
 }
 
-bool check_color_change(const PrintObject* object, size_t frst_layer_id, size_t layers_cnt, bool check_overhangs, std::function<bool(const Layer*)> break_condition)
+bool check_color_change(const std::shared_ptr<PrintObject> object, size_t frst_layer_id, size_t layers_cnt, bool check_overhangs, std::function<bool(const Layer*)> break_condition)
 {
     double prev_area = area(object->get_layer(frst_layer_id)->lslices);
 

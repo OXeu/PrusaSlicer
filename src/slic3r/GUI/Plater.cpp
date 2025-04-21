@@ -3282,7 +3282,7 @@ void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
             } else {
                 int i = 0;
                 while (i < int(printer_technology == ptFFF ? posCount : slaposCount)) { warning_steps.push_back(i); ++i; }
-                for (const PrintObject* po : wxGetApp().plater()->active_fff_print().objects())
+                for (const std::shared_ptr<PrintObject> po : wxGetApp().plater()->active_fff_print().objects())
                     object_ids.push_back(po->id());
             }
         }
@@ -3309,7 +3309,7 @@ void Plater::priv::on_slicing_update(SlicingStatusEvent &evt)
                             q->active_sla_print().step_state_with_warnings(static_cast<SLAPrintStep>(warning_step));
                     }
                     else if (this->printer_technology == ptFFF) {
-                        const PrintObject* print_object = q->active_fff_print().get_object(object_id);
+                        const std::shared_ptr<PrintObject> print_object = q->active_fff_print().get_object(object_id);
                         if (print_object)
                             state = print_object->step_state_with_warnings(static_cast<PrintObjectStep>(warning_step));
                     }

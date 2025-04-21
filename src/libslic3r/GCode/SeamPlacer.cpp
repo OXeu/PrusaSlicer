@@ -86,17 +86,17 @@ ObjectSeams precalculate_seams(
                 params.concave_visibility_modifier};
 
             Shells::Shells<> shells{Shells::create_shells(std::move(layer_perimeters), params.max_distance)};
-            result[print_object] = Aligned::get_object_seams(
+            result.at(print_object) = Aligned::get_object_seams(
                 std::move(shells), visibility_calculator, params.aligned
             );
             break;
         }
         case spRear: {
-            result[print_object] = Rear::get_object_seams(std::move(layer_perimeters), params.rear_tolerance, params.rear_y_offset);
+            result.at(print_object) = Rear::get_object_seams(std::move(layer_perimeters), params.rear_tolerance, params.rear_y_offset);
             break;
         }
         case spRandom: {
-            result[print_object] = Random::get_object_seams(std::move(layer_perimeters), params.random_seed);
+            result.at(print_object) = Random::get_object_seams(std::move(layer_perimeters), params.random_seed);
             break;
         }
         case spNearest: {
@@ -166,9 +166,9 @@ void Placer::init(
 
     for (auto &[print_object, layer_perimeters] : perimeters) {
         if (print_object->config().seam_position.value == spNearest) {
-            this->perimeters_per_layer[print_object] = std::move(layer_perimeters);
+            this->perimeters_per_layer.at(print_object) = std::move(layer_perimeters);
         } else {
-            perimeters_for_precalculation[print_object] = std::move(layer_perimeters);
+            perimeters_for_precalculation.at(print_object) = std::move(layer_perimeters);
         }
     }
 
@@ -535,7 +535,7 @@ int get_perimeter_count(const Layer *layer){
 boost::variant<Point, Scarf::Scarf> Placer::place_seam(
     const Layer *layer, const PrintRegion *region, const ExtrusionLoop &loop, const bool flipped, const Point &last_pos
 ) const {
-    const PrintObject *po = layer->object();
+    const PrintObject *po = layer->object().get();
     // Must not be called with supprot layer.
     assert(dynamic_cast<const SupportLayer *>(layer) == nullptr);
     // Object layer IDs are incremented by the number of raft layers.

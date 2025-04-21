@@ -108,7 +108,7 @@ TEST_CASE_METHOD(Slic3r::Test::SeamsFixture, "Seam benchmarks", "[Seams][.Benchm
         placer.init(print->objects(), params, [](){});
         std::vector<std::tuple<const Layer*, const ExtrusionLoop*, const PrintRegion *>> loops;
 
-        const PrintObject* object{print->objects().front()};
+        const std::shared_ptr<PrintObject> object{print->objects().front()};
         for (const Layer* layer :object->layers()) {
             for (const LayerSlice& lslice : layer->lslices_ex) {
                 for (const LayerIsland &island : lslice.islands) {

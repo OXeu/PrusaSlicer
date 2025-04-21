@@ -927,14 +927,14 @@ void Preview::load_print_as_fff(bool keep_z_range)
     bool has_layers = false;
     const Print *print = m_process->fff_print();
     if (print->is_step_done(posSlice)) {
-        for (const PrintObject* print_object : print->objects())
+        for (const std::shared_ptr<PrintObject> print_object : print->objects())
             if (! print_object->layers().empty()) {
                 has_layers = true;
                 break;
             }
     }
 	if (print->is_step_done(posSupportMaterial)) {
-        for (const PrintObject* print_object : print->objects())
+        for (const std::shared_ptr<PrintObject> print_object : print->objects())
             if (! print_object->support_layers().empty()) {
                 has_layers = true;
                 break;

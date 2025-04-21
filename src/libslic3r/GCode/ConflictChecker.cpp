@@ -272,7 +272,7 @@ ExtrusionPaths getExtrusionPathsFromSupportLayer(const std::shared_ptr<SupportLa
     return paths;
 }
 
-std::pair<std::vector<ExtrusionPaths>, std::vector<ExtrusionPaths>> getAllLayersExtrusionPathsFromObject(const PrintObject *obj)
+std::pair<std::vector<ExtrusionPaths>, std::vector<ExtrusionPaths>> getAllLayersExtrusionPathsFromObject(const std::shared_ptr<PrintObject> &obj)
 {
     std::vector<ExtrusionPaths> objPaths, supportPaths;
 
@@ -370,11 +370,11 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(SpanOfConstP
         if (ptr1 == &wtptr || ptr2 == &wtptr) {
             assert(! wipe_tower_data.z_and_depth_pairs.empty());
             if (ptr2 == &wtptr) { std::swap(ptr1, ptr2); }
-            const PrintObject *obj2 = reinterpret_cast<const PrintObject *>(ptr2);
+            const std::shared_ptr<PrintObject> &obj2 = reinterpret_cast<const std::shared_ptr<PrintObject> &>(ptr2);
             return std::make_optional<ConflictResult>("WipeTower", obj2->model_object()->name, conflictHeight, nullptr, ptr2);
         }
-        const PrintObject *obj1 = reinterpret_cast<const PrintObject *>(ptr1);
-        const PrintObject *obj2 = reinterpret_cast<const PrintObject *>(ptr2);
+        const std::shared_ptr<PrintObject> &obj1 = reinterpret_cast<const std::shared_ptr<PrintObject> &>(ptr1);
+        const std::shared_ptr<PrintObject> &obj2 = reinterpret_cast<const std::shared_ptr<PrintObject> &>(ptr2);
         return std::make_optional<ConflictResult>(obj1->model_object()->name, obj2->model_object()->name, conflictHeight, ptr1, ptr2);
     } else
         return {};

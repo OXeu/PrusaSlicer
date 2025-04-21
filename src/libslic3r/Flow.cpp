@@ -242,7 +242,7 @@ static float min_nozzle_diameter(const PrintObject &print_object)
     return min_nozzle_diameter;
 }
 
-Flow support_material_flow(const PrintObject *object, float layer_height)
+Flow support_material_flow(const std::shared_ptr<PrintObject> &object, float layer_height)
 {
     const PrintConfig &print_config = object->print()->config();
     const int          extruder     = object->config().support_material_extruder - 1;
@@ -258,7 +258,7 @@ Flow support_material_flow(const PrintObject *object, float layer_height)
         (layer_height > 0.f) ? layer_height : float(object->config().layer_height.value));
 }
 
-Flow support_material_1st_layer_flow(const PrintObject *object, float layer_height)
+Flow support_material_1st_layer_flow(const std::shared_ptr<PrintObject> &object, float layer_height)
 {
     const PrintConfig &print_config = object->print()->config();
     const int          extruder     = object->config().support_material_extruder - 1;
@@ -275,7 +275,7 @@ Flow support_material_1st_layer_flow(const PrintObject *object, float layer_heig
         (layer_height > 0.f) ? layer_height : float(print_config.first_layer_height.get_abs_value(object->config().layer_height.value)));
 }
 
-Flow support_material_interface_flow(const PrintObject *object, float layer_height)
+Flow support_material_interface_flow(const std::shared_ptr<PrintObject> &object, float layer_height)
 {
     const PrintConfig &print_config = object->print()->config();
     const int          extruder     = object->config().support_material_interface_extruder - 1;

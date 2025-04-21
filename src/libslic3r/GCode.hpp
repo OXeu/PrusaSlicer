@@ -95,7 +95,7 @@ struct LayerResult {
 namespace GCode {
 struct PrintObjectInstance
 {
-    const PrintObject *print_object = nullptr;
+    const std::shared_ptr<PrintObject> &print_object = nullptr;
     int                instance_idx = -1;
 
     bool operator==(const PrintObjectInstance &other) const {return print_object == other.print_object && instance_idx == other.instance_idx; }

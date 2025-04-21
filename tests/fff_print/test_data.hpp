@@ -207,7 +207,7 @@ struct SeamsFixture
     const boost::filesystem::path file_3mf{
         boost::filesystem::path{TEST_DATA_DIR} / boost::filesystem::path{"seam_test_object.3mf"}};
     const Print *print{Test::get_print(file_3mf)};
-    const PrintObject *print_object{print->objects()[0]};
+    const std::shared_ptr<PrintObject> &print_object{print->objects()[0]};
 
     Seams::Params params{Seams::Placer::get_params(print->full_print_config())};
 

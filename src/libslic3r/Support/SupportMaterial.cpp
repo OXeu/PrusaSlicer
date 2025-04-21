@@ -259,7 +259,7 @@ static Polygons contours_simplified(const Vec2i &grid_size, const double pixel_s
 }
 #endif // SUPPORT_USE_AGG_RASTERIZER
 
-PrintObjectSupportMaterial::PrintObjectSupportMaterial(const PrintObject *object, const SlicingParameters &slicing_params) :
+PrintObjectSupportMaterial::PrintObjectSupportMaterial(const std::shared_ptr<PrintObject> &object, const SlicingParameters &slicing_params) :
     m_print_config          (&object->print()->config()),
     m_object_config         (&object->config()),
     m_slicing_params        (slicing_params),

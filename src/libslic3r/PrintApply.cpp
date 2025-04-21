@@ -1402,7 +1402,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     old.emplace_back(&print_object_status);
             // Generate a list of trafos and XY offsets for instances of a ModelObject
             // Producing the config for PrintObject on demand, caching it at print_object_last.
-            const PrintObject *print_object_last = nullptr;
+            const std::shared_ptr<PrintObject> &print_object_last = nullptr;
             auto print_object_apply_config = [this, &print_object_last, model_object, num_extruders](PrintObject *print_object) {
                 print_object->config_apply(print_object_last ?
                     print_object_last->config() :
@@ -1612,14 +1612,14 @@ void Print::cleanup()
     // Invalidate data of a single ModelObject shared by multiple PrintObjects.
     // Find spans of PrintObjects sharing the same PrintObjectRegions.
     std::vector<PrintObject*> all_objects(m_objects);
-    std::sort(all_objects.begin(), all_objects.end(), [](const PrintObject *l, const PrintObject *r){ return l->shared_regions() < r->shared_regions(); } );
+    std::sort(all_objects.begin(), all_objects.end(), [](const std::shared_ptr<PrintObject> &l, const std::shared_ptr<PrintObject> &r){ return l->shared_regions() < r->shared_regions(); } );
     for (auto it = all_objects.begin(); it != all_objects.end();) {
         PrintObjectRegions *shared_regions = (*it)->m_shared_regions;
         auto it_begin = it;
         for (; it != all_objects.end() && shared_regions == (*it)->shared_regions(); ++ it)
             // Let the PrintObject clean up its data with invalidated milestones.
             (*it)->cleanup();
-        auto this_objects = SpanOfConstPtrs<PrintObject>(const_cast<const PrintObject* const* const>(&(*it_begin)), it - it_begin);
+        auto this_objects = SpanOfConstPtrs<PrintObject>(const_cast<const std::shared_ptr<PrintObject> const* const>(&(*it_begin)), it - it_begin);
         if (! Print::is_shared_print_object_step_valid_unguarded(this_objects, posSupportSpotsSearch))
             shared_regions->generated_support_points.reset();
     }

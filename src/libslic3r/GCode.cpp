@@ -841,11 +841,11 @@ namespace DoExport {
 // Sort the PrintObjects by their increasing Z, likely useful for avoiding colisions on Deltas during sequential prints.
 static inline std::vector<const PrintInstance*> sort_object_instances_by_max_z(const Print &print)
 {
-    std::vector<const PrintObject*> objects(print.objects().begin(), print.objects().end());
-    std::sort(objects.begin(), objects.end(), [](const PrintObject *po1, const PrintObject *po2) { return po1->height() < po2->height(); });
+    std::vector<const std::shared_ptr<PrintObject>> objects(print.objects().begin(), print.objects().end());
+    std::sort(objects.begin(), objects.end(), [](const std::shared_ptr<PrintObject> &po1, const std::shared_ptr<PrintObject> &po2) { return po1->height() < po2->height(); });
     std::vector<const PrintInstance*> instances;
     instances.reserve(objects.size());
-    for (const PrintObject *object : objects)
+    for (const std::shared_ptr<PrintObject> &object : objects)
         for (size_t i = 0; i < object->instances().size(); ++ i)
             instances.emplace_back(&object->instances()[i]);
     return instances;
@@ -858,7 +858,7 @@ std::vector<const PrintInstance*> sort_object_instances_by_model_order(const Pri
     // Build up map from ModelInstance* to PrintInstance*
     std::vector<std::pair<const ModelInstance*, const PrintInstance*>> model_instance_to_print_instance;
     model_instance_to_print_instance.reserve(print.num_object_instances());
-    for (const PrintObject *print_object : print.objects())
+    for (const std::shared_ptr<PrintObject> &print_object : print.objects())
         for (const PrintInstance &print_instance : print_object->instances())
             model_instance_to_print_instance.emplace_back(print_instance.model_instance, &print_instance);
     std::sort(model_instance_to_print_instance.begin(), model_instance_to_print_instance.end(), [](auto &l, auto &r) { return l.first < r.first; });
@@ -1084,7 +1084,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
     print.throw_if_canceled();
 
     // Write some terse information on the slicing parameters.
-    const PrintObject *first_object         = print.objects().front();
+    const std::shared_ptr<PrintObject> &first_object         = print.objects().front();
     const double       layer_height         = first_object->config().layer_height.value;
     assert(! print.config().first_layer_height.percent);
     const double       first_layer_height   = print.config().first_layer_height.value;
@@ -1278,7 +1278,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
     // Do all objects for each layer.
     if (print.config().complete_objects.value) {
         size_t finished_objects = 0;
-        const PrintObject *prev_object = (*print_object_instance_sequential_active)->print_object;
+        const std::shared_ptr<PrintObject> &prev_object = (*print_object_instance_sequential_active)->print_object;
         for (; print_object_instance_sequential_active != print_object_instances_ordering.end(); ++ print_object_instance_sequential_active) {
             const PrintObject &object = *(*print_object_instance_sequential_active)->print_object;
             if (&object != prev_object || tool_ordering.first_extruder() != final_extruder_id) {
@@ -1355,7 +1355,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
                 // Verify, whether the print overaps the priming extrusions.
                 BoundingBoxf bbox_print(get_print_extrusions_extents(print));
                 coordf_t twolayers_printz = ((layers_to_print.size() == 1) ? layers_to_print.front() : layers_to_print[1]).first + EPSILON;
-                for (const PrintObject *print_object : print.objects())
+                for (const std::shared_ptr<PrintObject> &print_object : print.objects())
                     bbox_print.merge(get_print_object_extrusions_extents(*print_object, twolayers_printz));
                 bbox_print.merge(get_wipe_tower_extrusions_extents(print, twolayers_printz));
                 BoundingBoxf bbox_prime(get_wipe_tower_priming_extrusions_extents(print));
@@ -2035,10 +2035,10 @@ std::vector<GCode::InstanceToPrint> GCodeGenerator::sort_print_object_instances(
         out.emplace_back(0, *object_layers.front().object(), single_object_instance_idx);
     } else {
         // Create mapping from PrintObject* to ObjectLayerToPrint ID.
-        std::vector<std::pair<const PrintObject*, size_t>> sorted;
+        std::vector<std::pair<const std::shared_ptr<PrintObject>, size_t>> sorted;
         sorted.reserve(object_layers.size());
         for (const ObjectLayerToPrint &object : object_layers)
-            if (const PrintObject* print_object = object.object(); print_object)
+            if (const std::shared_ptr<PrintObject> print_object = object.object(); print_object)
                 sorted.emplace_back(print_object, &object - object_layers.data());
         std::sort(sorted.begin(), sorted.end());
 
@@ -2046,7 +2046,7 @@ std::vector<GCode::InstanceToPrint> GCodeGenerator::sort_print_object_instances(
             out.reserve(sorted.size());
             for (const PrintInstance *instance : *ordering) {
                 const PrintObject &print_object = *instance->print_object;
-                std::pair<const PrintObject*, size_t> key(&print_object, 0);
+                std::pair<const std::shared_ptr<PrintObject>, size_t> key(&print_object, 0);
                 auto it = std::lower_bound(sorted.begin(), sorted.end(), key);
                 if (it != sorted.end() && it->first == &print_object)
                     // ObjectLayerToPrint for this PrintObject was found.

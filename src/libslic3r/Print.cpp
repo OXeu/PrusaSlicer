@@ -320,7 +320,7 @@ bool Print::is_step_done(PrintObjectStep step) const
     if (m_objects.empty())
         return false;
     std::scoped_lock<std::mutex> lock(this->state_mutex());
-    for (const PrintObject *object : m_objects)
+    for (const std::shared_ptr<PrintObject> &object : m_objects)
         if (! object->is_step_done_unguarded(step))
             return false;
     return true;
@@ -331,7 +331,7 @@ std::vector<unsigned int> Print::object_extruders() const
 {
     std::vector<unsigned int> extruders;
     extruders.reserve(m_print_regions.size() * m_objects.size() * 3);
-    for (const PrintObject *object : m_objects)
+    for (const std::shared_ptr<PrintObject> &object : m_objects)
 		for (const PrintRegion &region : object->all_regions())
         	region.collect_object_printing_extruders(*this, extruders);
     sort_remove_duplicates(extruders);
@@ -393,7 +393,7 @@ std::vector<unsigned int> Print::extruders() const
 unsigned int Print::num_object_instances() const
 {
 	unsigned int instances = 0;
-    for (const PrintObject *print_object : m_objects)
+    for (const std::shared_ptr<PrintObject> &print_object : m_objects)
         instances += (unsigned int)print_object->instances().size();
     return instances;
 }
@@ -411,7 +411,7 @@ std::vector<ObjectID> Print::print_object_ids() const
     std::vector<ObjectID> out; 
     // Reserve one more for the caller to append the ID of the Print itself.
     out.reserve(m_objects.size() + 1);
-    for (const PrintObject *print_object : m_objects)
+    for (const std::shared_ptr<PrintObject> &print_object : m_objects)
         out.emplace_back(print_object->id());
     return out;
 }
@@ -473,7 +473,7 @@ std::string Print::validate(std::vector<std::string>* warnings) const
 
     if (m_config.spiral_vase) {
         size_t total_copies_count = 0;
-        for (const PrintObject *object : m_objects)
+        for (const std::shared_ptr<PrintObject> &object : m_objects)
             total_copies_count += object->instances().size();
         // #4043
         if (total_copies_count > 1 && ! m_config.complete_objects.value)
@@ -527,7 +527,7 @@ std::string Print::validate(std::vector<std::string>* warnings) const
 
     // Some of the objects has variable layer height applied by painting or by a table.
     bool has_custom_layering = std::find_if(m_objects.begin(), m_objects.end(), 
-        [](const PrintObject *object) { return object->model_object()->has_custom_layering(); }) 
+        [](const std::shared_ptr<PrintObject> &object) { return object->model_object()->has_custom_layering(); })
         != m_objects.end();
 
     // Custom layering is not allowed for tree supports as of now.
@@ -761,7 +761,7 @@ std::string Print::validate(std::vector<std::string>* warnings) const
 BoundingBox Print::bounding_box() const
 {
     BoundingBox bb;
-    for (const PrintObject *object : m_objects)
+    for (const std::shared_ptr<PrintObject> &object : m_objects)
         for (const PrintInstance &instance : object->instances()) {
         	BoundingBox bb2(object->bounding_box());
         	bb.merge(bb2.min + instance.shift);
@@ -860,7 +860,7 @@ Flow Print::skirt_flow() const
 
 bool Print::has_support_material() const
 {
-    for (const PrintObject *object : m_objects)
+    for (const std::shared_ptr<PrintObject> &object : m_objects)
         if (object->has_support_material()) 
             return true;
     return false;
@@ -1025,7 +1025,7 @@ void Print::_make_skirt()
     // prepended to the first 'n' layers (with 'n' = skirt_height).
     // $skirt_height_z in this case is the highest possible skirt height for safety.
     coordf_t skirt_height_z = 0.;
-    for (const PrintObject *object : m_objects) {
+    for (const std::shared_ptr<PrintObject> &object : m_objects) {
         size_t skirt_layers = this->has_infinite_skirt() ?
             object->layer_count() : 
             std::min(size_t(m_config.skirt_height.value), object->layer_count());
@@ -1034,7 +1034,7 @@ void Print::_make_skirt()
     
     // Collect points from all layers contained in skirt height.
     Points points;
-    for (const PrintObject *object : m_objects) {
+    for (const std::shared_ptr<PrintObject> &object : m_objects) {
         Points object_points;
         // Get object layers up to skirt_height_z.
         for (const Layer *layer : object->m_layers) {
@@ -1293,9 +1293,9 @@ void Print::alert_when_supports_needed()
         };
 
         // vector of pairs of object and its issues, where each issue is a pair of type and critical flag
-        std::vector<std::pair<const PrintObject *, std::vector<std::pair<SupportSpotsGenerator::SupportPointCause, bool>>>> objects_isssues;
+        std::vector<std::pair<const std::shared_ptr<PrintObject> &, std::vector<std::pair<SupportSpotsGenerator::SupportPointCause, bool>>>> objects_isssues;
 
-        for (const PrintObject *object : m_objects) {
+        for (const std::shared_ptr<PrintObject> &object : m_objects) {
             std::unordered_set<const ModelObject *> checked_model_objects;
             if (!object->has_support() && checked_model_objects.find(object->model_object()) == checked_model_objects.end()) {
                 if (object->m_shared_regions->generated_support_points.has_value()) {
@@ -1312,7 +1312,7 @@ void Print::alert_when_supports_needed()
         }
 
         bool                                                                                                  recommend_brim = false;
-        std::map<std::pair<SupportSpotsGenerator::SupportPointCause, bool>, std::vector<const PrintObject *>> po_by_support_issues;
+        std::map<std::pair<SupportSpotsGenerator::SupportPointCause, bool>, std::vector<const std::shared_ptr<PrintObject> &>> po_by_support_issues;
         for (const auto &obj : objects_isssues) {
             for (const auto &issue : obj.second) {
                 po_by_support_issues[issue].push_back(obj.first);
