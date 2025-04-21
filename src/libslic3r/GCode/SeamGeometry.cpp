@@ -237,11 +237,11 @@ Geometry::Extrusions get_external_perimeters(const Slic3r::Layer &layer, const L
     return result;
 }
 
-std::vector<Extrusions> get_extrusions(tcb::span<const Slic3r::Layer *const> object_layers) {
+std::vector<Extrusions> get_extrusions(tcb::span<std::shared_ptr<Layer>> object_layers) {
     std::vector<Extrusions> result;
     result.reserve(object_layers.size());
 
-    for (const Slic3r::Layer *object_layer : object_layers) {
+    for (const auto &object_layer : object_layers) {
         Extrusions extrusions;
 
         for (const LayerSlice &slice : object_layer->lslices_ex) {

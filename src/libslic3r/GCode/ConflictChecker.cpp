@@ -265,7 +265,7 @@ ExtrusionPaths getExtrusionPathsFromLayer(LayerRegionPtrs layerRegionPtrs)
     return paths;
 }
 
-ExtrusionPaths getExtrusionPathsFromSupportLayer(const SupportLayer *supportLayer)
+ExtrusionPaths getExtrusionPathsFromSupportLayer(const std::shared_ptr<SupportLayer> &supportLayer)
 {
     ExtrusionPaths paths;
     getExtrusionPathsFromEntity(&supportLayer->support_fills, paths);
@@ -324,15 +324,15 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(SpanOfConstP
         std::vector<ExtrusionPaths> wtpaths = getFakeExtrusionPathsFromWipeTower(wipe_tower_data);
         conflictQueue.emplace_back_bucket(std::move(wtpaths), &wtptr, Points{Point(plate_origin)});
     }
-    for (const PrintObject *obj : objs) {
-        std::pair<std::vector<ExtrusionPaths>, std::vector<ExtrusionPaths>> layers = getAllLayersExtrusionPathsFromObject(obj);
+    for (const auto &obj : objs) {
+        std::pair<std::vector<ExtrusionPaths>, std::vector<ExtrusionPaths>> layers = getAllLayersExtrusionPathsFromObject(obj.get());
 
         Points instances_shifts;
         for (const PrintInstance& inst : obj->instances())
             instances_shifts.emplace_back(inst.shift);
 
-        conflictQueue.emplace_back_bucket(std::move(layers.first), obj, instances_shifts);
-        conflictQueue.emplace_back_bucket(std::move(layers.second), obj, instances_shifts);
+        conflictQueue.emplace_back_bucket(std::move(layers.first), obj.get(), instances_shifts);
+        conflictQueue.emplace_back_bucket(std::move(layers.second), obj.get(), instances_shifts);
     }
     conflictQueue.build_queue();
 

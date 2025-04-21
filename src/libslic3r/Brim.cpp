@@ -83,7 +83,7 @@ static std::vector<ExPolygons> get_print_bottom_layers_expolygons(const Print &p
 {
     std::vector<ExPolygons> bottom_layers_expolygons;
     bottom_layers_expolygons.reserve(print.objects().size());
-    for (const PrintObject *object : print.objects())
+    for (const auto &object : print.objects())
         bottom_layers_expolygons.emplace_back(get_print_object_bottom_layer_expolygons(*object));
 
     return bottom_layers_expolygons;
@@ -95,7 +95,7 @@ static ConstPrintObjectPtrs get_top_level_objects_with_brim(const Print &print, 
     Polygons             islands;
     ConstPrintObjectPtrs island_to_object;
     for(size_t print_object_idx = 0; print_object_idx < print.objects().size(); ++print_object_idx) {
-        const PrintObject *object = print.objects()[print_object_idx];
+        const std::shared_ptr<PrintObject> object = print.objects()[print_object_idx];
         Polygons islands_object;
         islands_object.reserve(bottom_layers_expolygons[print_object_idx].size());
         for (const ExPolygon &ex_poly : bottom_layers_expolygons[print_object_idx])
@@ -153,7 +153,7 @@ static ConstPrintObjectPtrs get_top_level_objects_with_brim(const Print &print, 
 static Polygons top_level_outer_brim_islands(const ConstPrintObjectPtrs &top_level_objects_with_brim, const double scaled_resolution)
 {
     Polygons islands;
-    for (const PrintObject *object : top_level_objects_with_brim) {
+    for (const std::shared_ptr<const PrintObject> & object : top_level_objects_with_brim) {
         if (!object->has_brim())
             continue;
 
@@ -182,17 +182,17 @@ static ExPolygons top_level_outer_brim_area(const Print                   &print
     assert(print.objects().size() == bottom_layers_expolygons.size());
     std::unordered_set<size_t> top_level_objects_idx;
     top_level_objects_idx.reserve(top_level_objects_with_brim.size());
-    for (const PrintObject *object : top_level_objects_with_brim)
+    for (const std::shared_ptr<const PrintObject> &object : top_level_objects_with_brim)
         top_level_objects_idx.insert(object->id().id);
 
     ExPolygons brim_area;
     ExPolygons no_brim_area;
     for(size_t print_object_idx = 0; print_object_idx < print.objects().size(); ++print_object_idx) {
-        const PrintObject *object            = print.objects()[print_object_idx];
-        const BrimType     brim_type         = object->config().brim_type.value;
-        const float        brim_separation   = scale_(object->config().brim_separation.value);
-        const float        brim_width        = scale_(object->config().brim_width.value);
-        const bool         is_top_outer_brim = top_level_objects_idx.find(object->id().id) != top_level_objects_idx.end();
+        const std::shared_ptr<PrintObject> object            = print.objects()[print_object_idx];
+        const BrimType                     brim_type         = object->config().brim_type.value;
+        const float                        brim_separation   = scale_(object->config().brim_separation.value);
+        const float                        brim_width        = scale_(object->config().brim_width.value);
+        const bool                         is_top_outer_brim = top_level_objects_idx.find(object->id().id) != top_level_objects_idx.end();
 
         ExPolygons brim_area_object;
         ExPolygons no_brim_area_object;
@@ -231,7 +231,7 @@ static std::vector<bool> has_polygons_nothing_inside(const Print &print, const s
     assert(print.objects().size() == bottom_layers_expolygons.size());
     Polygons islands;
     for(size_t print_object_idx = 0; print_object_idx < print.objects().size(); ++print_object_idx) {
-        const PrintObject *object         = print.objects()[print_object_idx];
+        const auto & object         = print.objects()[print_object_idx];
         const Polygons     islands_object = to_polygons(bottom_layers_expolygons[print_object_idx]);
 
         islands.reserve(islands.size() + object->instances().size() * islands_object.size());
@@ -302,7 +302,7 @@ static std::vector<InnerBrimExPolygons> inner_brim_area(const Print             
     std::vector<bool>          has_nothing_inside = has_polygons_nothing_inside(print, bottom_layers_expolygons);
     std::unordered_set<size_t> top_level_objects_idx;
     top_level_objects_idx.reserve(top_level_objects_with_brim.size());
-    for (const PrintObject *object : top_level_objects_with_brim)
+    for (const std::shared_ptr<const PrintObject> & object : top_level_objects_with_brim)
         top_level_objects_idx.insert(object->id().id);
 
     std::vector<ExPolygons> brim_area_innermost(print.objects().size());
@@ -313,7 +313,7 @@ static std::vector<InnerBrimExPolygons> inner_brim_area(const Print             
     // polygon_idx must correspond to idx generated inside has_polygons_nothing_inside()
     size_t polygon_idx = 0;
     for(size_t print_object_idx = 0; print_object_idx < print.objects().size(); ++print_object_idx) {
-        const PrintObject *object          = print.objects()[print_object_idx];
+        const auto &object = print.objects()[print_object_idx];
         const BrimType     brim_type       = object->config().brim_type.value;
         const float        brim_separation = scale_(object->config().brim_separation.value);
         const float        brim_width      = scale_(object->config().brim_width.value);
@@ -396,7 +396,7 @@ static void optimize_polylines_by_reversing(Polylines *polylines)
             double dist_to_start = (next.first_point() - prev.last_point()).cast<double>().norm();
             double dist_to_end   = (next.last_point() - prev.last_point()).cast<double>().norm();
 
-            if (dist_to_end < dist_to_start) 
+            if (dist_to_end < dist_to_start)
                 next.reverse();
         }
     }
@@ -511,7 +511,7 @@ static void make_inner_brim(const Print                   &print,
 
     loops = union_pt_chained_outside_in(loops);
     std::reverse(loops.begin(), loops.end());
-    extrusion_entities_append_loops(brim.entities, std::move(loops), 
+    extrusion_entities_append_loops(brim.entities, std::move(loops),
         ExtrusionAttributes{
             ExtrusionRole::Skirt,
             ExtrusionFlow{ float(flow.mm3_per_mm()), float(flow.width()), float(print.skirt_first_layer_height()) } });
@@ -534,7 +534,7 @@ ExtrusionEntityCollection make_brim(const Print &print, PrintTryCancel try_cance
     for (size_t i = 0; i < num_loops; ++i) {
         try_cancel();
         islands = expand(islands, float(flow.scaled_spacing()), ClipperLib::jtSquare);
-        for (Polygon &poly : islands) 
+        for (Polygon &poly : islands)
             poly.douglas_peucker(scaled_resolution);
         polygons_append(loops, shrink(islands, 0.5f * float(flow.scaled_spacing())));
     }
@@ -696,7 +696,7 @@ ExtrusionEntityCollection make_brim(const Print &print, PrintTryCancel try_cance
 					auto *loop = new ExtrusionLoop();
                     brim.entities.emplace_back(loop);
                     loop->paths.emplace_back(ExtrusionAttributes{
-                        ExtrusionRole::Skirt, 
+                        ExtrusionRole::Skirt,
                         ExtrusionFlow{ float(flow.mm3_per_mm()), float(flow.width()), float(print.skirt_first_layer_height()) } });
 		            Points &points = loop->paths.front().polyline.points;
 		            points.reserve(first_path.size());
@@ -726,7 +726,7 @@ ExtrusionEntityCollection make_brim(const Print &print, PrintTryCancel try_cance
 			}
 		}
     } else {
-        extrusion_entities_append_loops_and_paths(brim.entities, std::move(all_loops), 
+        extrusion_entities_append_loops_and_paths(brim.entities, std::move(all_loops),
             ExtrusionAttributes{ ExtrusionRole::Skirt,
                 ExtrusionFlow{ float(flow.mm3_per_mm()), float(flow.width()), float(print.skirt_first_layer_height()) } });
     }

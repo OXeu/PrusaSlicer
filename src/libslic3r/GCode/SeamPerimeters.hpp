@@ -64,7 +64,7 @@ using LayerInfos = std::vector<LayerInfo>;
  * @brief Construct LayerInfo for each of the provided layers.
  */
 LayerInfos get_layer_infos(
-    tcb::span<const Slic3r::Layer* const> object_layers, const double elephant_foot_compensation
+    tcb::span<std::shared_ptr<Layer>> object_layers, const double elephant_foot_compensation
 );
 
 struct PerimeterPoint {

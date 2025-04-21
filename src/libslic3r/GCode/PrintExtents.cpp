@@ -121,7 +121,7 @@ BoundingBoxf get_print_extrusions_extents(const Print &print)
 BoundingBoxf get_print_object_extrusions_extents(const PrintObject &print_object, const coordf_t max_print_z)
 {
     BoundingBoxf bbox;
-    for (const Layer *layer : print_object.layers()) {
+    for (const auto &layer : print_object.layers()) {
         if (layer->print_z > max_print_z)
             break;
         BoundingBoxf bbox_this;
@@ -131,7 +131,7 @@ BoundingBoxf get_print_object_extrusions_extents(const PrintObject &print_object
                 // fill represents infill extrusions of a single island.
                 bbox_this.merge(extrusionentity_extents(*dynamic_cast<const ExtrusionEntityCollection*>(ee)));
         }
-        const SupportLayer *support_layer = dynamic_cast<const SupportLayer*>(layer);
+        const auto *support_layer = dynamic_cast<const SupportLayer*>(layer.get());
         if (support_layer)
             for (const ExtrusionEntity *extrusion_entity : support_layer->support_fills.entities)
                 bbox_this.merge(extrusionentity_extents(extrusion_entity));

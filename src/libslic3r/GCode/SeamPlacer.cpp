@@ -30,8 +30,8 @@ ObjectLayerPerimeters get_perimeters(
 ) {
     ObjectLayerPerimeters result;
 
-    for (const PrintObject *print_object : objects) {
-        const ModelInfo::Painting &painting{object_painting.at(print_object)};
+    for (const auto &print_object : objects) {
+        const ModelInfo::Painting &painting{object_painting.at(print_object.get())};
         throw_if_canceled();
 
         const std::vector<Geometry::Extrusions> extrusions{
@@ -45,7 +45,7 @@ ObjectLayerPerimeters get_perimeters(
         Perimeters::LayerPerimeters perimeters{Perimeters::create_perimeters(projected, layer_infos, painting, params.perimeter)};
 
         throw_if_canceled();
-        result.emplace(print_object, std::move(perimeters));
+        result.emplace(print_object.get(), std::move(perimeters));
     }
     return result;
 }
@@ -155,10 +155,10 @@ void Placer::init(
     BOOST_LOG_TRIVIAL(debug) << "SeamPlacer: init: start";
 
     ObjectPainting object_painting;
-    for (const PrintObject *print_object : objects) {
+    for (const auto &print_object : objects) {
         const Transform3d transformation{print_object->trafo_centered()};
         const ModelVolumePtrs &volumes{print_object->model_object()->volumes};
-        object_painting.emplace(print_object, ModelInfo::Painting{transformation, volumes});
+        object_painting.emplace(print_object.get(), ModelInfo::Painting{transformation, volumes});
     }
 
     ObjectLayerPerimeters perimeters{get_perimeters(objects, params, object_painting, throw_if_canceled)};

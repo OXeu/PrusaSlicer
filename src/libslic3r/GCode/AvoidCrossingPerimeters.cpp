@@ -524,7 +524,7 @@ static float get_perimeter_spacing_external(const Layer &layer)
 {
     size_t regions_count     = 0;
     float  perimeter_spacing = 0.f;
-    for (const PrintObject *object : layer.object()->print()->objects())
+    for (const auto & object : layer.object()->print()->objects())
         if (const Layer *l = object->get_layer_at_printz(layer.print_z, EPSILON); l)
             for (const LayerRegion *layer_region : l->regions())
                 if (layer_region != nullptr && ! layer_region->slices().empty()) {

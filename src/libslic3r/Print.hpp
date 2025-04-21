@@ -148,10 +148,10 @@ inline bool operator!=(const PrintRegion &lhs, const PrintRegion &rhs) { return 
 
 // For const correctness: Wrapping a vector of non-const pointers as a span of const pointers.
 template<class T>
-using SpanOfConstPtrs           = tcb::span<const T* const>;
+using SpanOfConstPtrs           = tcb::span<const std::shared_ptr<T>>;
 
-using LayerPtrs                 = std::vector<Layer*>;
-using SupportLayerPtrs          = std::vector<SupportLayer*>;
+using LayerPtrs                 = std::vector<std::shared_ptr<Layer>>;
+using SupportLayerPtrs          = std::vector<std::shared_ptr<SupportLayer>>;
 
 // Single instance of a PrintObject.
 // As multiple PrintObjects may be generated for a single ModelObject (their instances differ in rotation around Z),
@@ -282,8 +282,8 @@ public:
     // Size of an object: XYZ in scaled coordinates. The size might not be quite snug in XY plane.
     const Vec3crd&               size() const			{ return m_size; }
     const PrintObjectConfig&     config() const         { return m_config; }
-    auto                         layers() const         { return SpanOfConstPtrs<Layer>(const_cast<const Layer* const* const>(m_layers.data()), m_layers.size()); }
-    auto                         support_layers() const { return SpanOfConstPtrs<SupportLayer>(const_cast<const SupportLayer* const* const>(m_support_layers.data()), m_support_layers.size()); }
+    auto                         layers() const         { return SpanOfConstPtrs<Layer>(m_layers.data(), m_layers.size()); }
+    auto                         support_layers() const { return SpanOfConstPtrs<SupportLayer>(m_support_layers.data(), m_support_layers.size()); }
     const Transform3d&           trafo() const          { return m_trafo; }
     // Trafo with the center_offset() applied after the transformation, to center the object in XY before slicing.
     Transform3d                  trafo_centered() const
@@ -315,8 +315,9 @@ public:
     size_t 			total_layer_count() const { return this->layer_count() + this->support_layer_count(); }
     size_t 			layer_count() const { return m_layers.size(); }
     void 			clear_layers();
-    const Layer* 	get_layer(int idx) const { return m_layers[idx]; }
-    Layer* 			get_layer(int idx) 		 { return m_layers[idx]; }
+
+    std::shared_ptr<Layer> get_layer(int idx) const { return m_layers[idx]; }
+    std::shared_ptr<Layer> get_layer(int idx) { return m_layers[idx]; }
     // Get a layer exactly at print_z.
     const Layer*	get_layer_at_printz(coordf_t print_z) const;
     Layer*			get_layer_at_printz(coordf_t print_z);
@@ -331,7 +332,7 @@ public:
 
     size_t          support_layer_count() const { return m_support_layers.size(); }
     void            clear_support_layers();
-    SupportLayer*   get_support_layer(int idx) { return m_support_layers[idx]; }
+    std::shared_ptr<SupportLayer>   get_support_layer(int idx) { return m_support_layers[idx]; }
     SupportLayer*   add_support_layer(int id, int interface_id, coordf_t height, coordf_t print_z);
     SupportLayerPtrs::iterator insert_support_layer(SupportLayerPtrs::iterator pos, size_t id, size_t interface_id, coordf_t height, coordf_t print_z, coordf_t slice_z);
     void            delete_support_layer(int idx);
@@ -457,6 +458,18 @@ private:
 
     std::pair<FillAdaptive::OctreePtr, FillAdaptive::OctreePtr> m_adaptive_fill_octrees;
     FillLightning::GeneratorPtr m_lightning_generator;
+
+    friend class cereal::access;
+    template<class Archive>
+      void serialize(Archive & ar)
+    {
+        ar( m_size,
+            m_config,
+            m_trafo,
+            m_instances,
+            m_center_offset
+            );
+    }
 };
 
 
@@ -623,10 +636,10 @@ struct PrintStatistics
     }
 };
 
-using PrintObjectPtrs          = std::vector<PrintObject*>;
-using ConstPrintObjectPtrs     = std::vector<const PrintObject*>;
+using PrintObjectPtrs          = std::vector<std::shared_ptr<PrintObject>>;
+using ConstPrintObjectPtrs     = std::vector<std::shared_ptr<const PrintObject>>;
 
-using PrintRegionPtrs          = std::vector<PrintRegion*>;
+using PrintRegionPtrs          = std::vector<std::shared_ptr<PrintRegion>>;
 
 // The complete print tray with possibly multiple objects.
 class Print : public PrintBaseWithState<PrintStep, psCount>
@@ -641,7 +654,11 @@ public:
     template<class Archive>
       void serialize(Archive & ar)
         {
-            ar( m_config, m_print_statistics );
+            ar( m_config,
+                m_default_object_config,
+                m_default_region_config,
+                m_objects,
+                m_print_statistics );
         }
     Print() = default;
 	virtual ~Print() { this->clear(); }
@@ -696,20 +713,20 @@ public:
     const PrintConfig&          config() const { return m_config; }
     const PrintObjectConfig&    default_object_config() const { return m_default_object_config; }
     const PrintRegionConfig&    default_region_config() const { return m_default_region_config; }
-    SpanOfConstPtrs<PrintObject> objects() const { return SpanOfConstPtrs<PrintObject>(const_cast<const PrintObject* const* const>(m_objects.data()), m_objects.size()); }
-    PrintObject*                get_object(size_t idx) { return const_cast<PrintObject*>(m_objects[idx]); }
-    const PrintObject*          get_object(size_t idx) const { return m_objects[idx]; }
+    SpanOfConstPtrs<PrintObject> objects() const { return SpanOfConstPtrs<PrintObject>(m_objects.data(), m_objects.size()); }
+    PrintObject*                get_object(size_t idx) { return m_objects[idx].get(); }
+    const PrintObject*          get_object(size_t idx) const { return m_objects[idx].get(); }
     const PrintObject* get_print_object_by_model_object_id(ObjectID object_id) const {
-        auto it = std::find_if(m_objects.begin(), m_objects.end(),
-                               [object_id](const PrintObject* obj) { return obj->model_object()->id() == object_id; });
-        return (it == m_objects.end()) ? nullptr : *it;
+        const auto it = std::find_if(m_objects.begin(), m_objects.end(),
+                               [object_id](const auto &obj) { return obj->model_object()->id() == object_id; });
+        return (it == m_objects.end()) ? nullptr : it->get();
     }
     // PrintObject by its ObjectID, to be used to uniquely bind slicing warnings to their source PrintObjects
     // in the notification center.
     const PrintObject*          get_object(ObjectID object_id) const {
-        auto it = std::find_if(m_objects.begin(), m_objects.end(),
-            [object_id](const PrintObject *obj) { return obj->id() == object_id; });
-        return (it == m_objects.end()) ? nullptr : *it;
+        const auto it = std::find_if(m_objects.begin(), m_objects.end(),
+            [object_id](const auto &obj) { return obj->id() == object_id; });
+        return (it == m_objects.end()) ? nullptr : it->get();
     }
     // How many of PrintObject::copies() over all print objects are there?
     // If zero, then the print is empty and the print shall not be executed.

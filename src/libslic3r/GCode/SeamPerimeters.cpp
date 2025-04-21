@@ -334,7 +334,7 @@ PerimeterPoints get_perimeter_points(const std::vector<Vec2d> &points){
 namespace Slic3r::Seams::Perimeters {
 
 LayerInfos get_layer_infos(
-    tcb::span<const Slic3r::Layer* const> object_layers, const double elephant_foot_compensation
+    tcb::span<std::shared_ptr<Layer>> object_layers, const double elephant_foot_compensation
 ) {
     LayerInfos result(object_layers.size());
 

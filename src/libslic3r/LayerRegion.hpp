@@ -26,7 +26,7 @@ namespace Slic3r {
 class Layer;
 class PrintObject;
 
-using LayerPtrs = std::vector<Layer*>;
+using LayerPtrs = std::vector<std::shared_ptr<Layer>>;
 class PrintRegion;
 
 struct PerimeterRegion;

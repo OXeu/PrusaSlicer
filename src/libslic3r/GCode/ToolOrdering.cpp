@@ -148,7 +148,7 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
                 zs.emplace_back(layer->print_z);
 
             // Find first object layer that is not empty and save its print_z
-            for (const Layer* layer : object->layers())
+            for (const auto & layer : object->layers())
                 if (layer->has_extrusions()) {
                     object_bottom_z = layer->print_z - layer->height;
                     break;
@@ -750,7 +750,7 @@ float WipingExtrusions::mark_wiping_extrusions(const Print& print, const LayerTo
             continue;
         }
 
-        const PrintObject* object = object_list[i];
+        const auto & object = object_list[i];
 
         // Finds this layer:
         const Layer* this_layer = object->get_layer_at_printz(lt.print_z, EPSILON);
@@ -823,7 +823,7 @@ void WipingExtrusions::ensure_perimeters_infills_order(const Print& print, const
     unsigned int first_nonsoluble_extruder = first_nonsoluble_extruder_on_layer(print.config(), lt);
     unsigned int last_nonsoluble_extruder = last_nonsoluble_extruder_on_layer(print.config(), lt);
 
-    for (const PrintObject* object : print.objects()) {
+    for (const auto & object : print.objects()) {
         // Finds this layer:
         const Layer* this_layer = object->get_layer_at_printz(lt.print_z, EPSILON);
         if (this_layer == nullptr)

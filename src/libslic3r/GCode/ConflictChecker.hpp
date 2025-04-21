@@ -113,7 +113,7 @@ void getExtrusionPathsFromEntity(const ExtrusionEntityCollection *entity, Extrus
 
 ExtrusionPaths getExtrusionPathsFromLayer(LayerRegionPtrs layerRegionPtrs);
 
-ExtrusionPaths getExtrusionPathsFromSupportLayer(SupportLayer *supportLayer);
+ExtrusionPaths getExtrusionPathsFromSupportLayer(std::shared_ptr<SupportLayer> &supportLayer);
 
 std::pair<std::vector<ExtrusionPaths>, std::vector<ExtrusionPaths>> getAllLayersExtrusionPathsFromObject(PrintObject *obj);
 

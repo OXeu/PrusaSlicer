@@ -40,7 +40,7 @@ class ExPolygon;
 using ExPolygons = std::vector<ExPolygon>;
 class Layer;
 
-using LayerPtrs = std::vector<Layer*>;
+using LayerPtrs = std::vector<std::shared_ptr<Layer>>;
 class LayerRegion;
 
 using LayerRegionPtrs = std::vector<LayerRegion*>;

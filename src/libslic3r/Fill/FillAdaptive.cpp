@@ -326,7 +326,7 @@ std::pair<double, double> adaptive_fill_line_spacing(const PrintObject &print_ob
 
     if (build_octree) {
         // Compute the average of above parameters over all layers
-        for (const Layer *layer : print_object.layers())
+        for (const auto &layer : print_object.layers())
             for (size_t region_id = 0; region_id < layer->regions().size(); ++ region_id) {
                 RegionFillData &rd = region_fill_data[region_id];
                 if (rd.has_adaptive_infill == Tristate::Maybe && ! layer->regions()[region_id]->fill_surfaces().empty())

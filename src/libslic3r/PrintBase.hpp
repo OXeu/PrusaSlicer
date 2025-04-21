@@ -621,7 +621,7 @@ protected:
 
     // After calling the apply() function, set_task() may be called to limit the task to be processed by process().
     template<typename PrintObject>
-    void set_task_impl(const TaskParams &params, std::vector<PrintObject*> &print_objects)
+    void set_task_impl(const TaskParams &params, std::vector<std::shared_ptr<PrintObject>> &print_objects)
     {
         static constexpr const auto PrintObjectStepEnumSize = int(PrintObject::PrintObjectStepEnumSize);
         using                       PrintObjectStepEnum     = typename PrintObject::PrintObjectStepEnum;
@@ -634,7 +634,7 @@ protected:
 
         if (params.single_model_object.valid()) {
             // Find the print object to be processed with priority.
-            PrintObject *print_object = nullptr;
+             std::shared_ptr<PrintObject> print_object = nullptr;
             size_t       idx_print_object = 0;
             for (; idx_print_object < print_objects.size(); ++ idx_print_object)
                 if (print_objects[idx_print_object]->model_object()->id() == params.single_model_object) {
@@ -660,7 +660,7 @@ protected:
             // Now the background process is either stopped, or it is inside one of the print object steps to be calculated anyway.
             if (params.single_model_instance_only) {
                 // Suppress all the steps of other instances.
-                for (PrintObject *po : print_objects)
+                for (auto &po : print_objects)
                     for (size_t istep = 0; istep < PrintObjectStepEnumSize; ++ istep)
                         po->enable_step_unguarded(PrintObjectStepEnum(istep), false);
             } else if (! running) {
@@ -677,7 +677,7 @@ protected:
         } else {
             // Slicing all objects.
             bool running = false;
-            for (PrintObject *print_object : print_objects)
+            for (auto &print_object : print_objects)
                 for (int istep = 0; istep < n_object_steps; ++ istep) {
                     if (! print_object->is_step_enabled_unguarded(PrintObjectStepEnum(istep))) {
                         // Step may have been skipped. Restart.
@@ -693,7 +693,7 @@ protected:
         loop_end:
             if (! running)
                 this->call_cancel_callback();
-            for (PrintObject *po : print_objects) {
+            for (auto &po : print_objects) {
                 for (int istep = 0; istep < n_object_steps; ++ istep)
                     po->enable_step_unguarded(PrintObjectStepEnum(istep), true);
                 for (int istep = n_object_steps; istep < PrintObjectStepEnumSize; ++ istep)
@@ -715,11 +715,11 @@ protected:
     // Also if the background processing was canceled, the current milestone that was just abandoned 
     // in Started state is to be reset to Canceled state.
     template<typename PrintObject>
-    void finalize_impl(std::vector<PrintObject*> &print_objects)
+    void finalize_impl(std::vector<std::shared_ptr<PrintObject>> &print_objects)
     {
         // Grab the lock for the Print / PrintObject milestones.
         std::scoped_lock<std::mutex> lock(this->state_mutex());
-        for (auto *po : print_objects)
+        for (auto &po : print_objects)
             po->finalize_impl();
         m_state.enable_all_unguarded(true);
         m_state.mark_canceled_unguarded();

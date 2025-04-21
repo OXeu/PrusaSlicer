@@ -63,7 +63,7 @@ void LabelObjects::init(const SpanOfConstPtrs<PrintObject>& objects, LabelObject
 
     // Iterate over all PrintObjects and their PrintInstances, collect PrintInstances which
     // belong to the same ModelObject.
-    for (const PrintObject* po : objects)
+    for (const auto & po : objects)
         for (const PrintInstance& pi : po->instances())
             model_object_to_print_instances[pi.model_instance->get_object()].emplace_back(&pi);
 

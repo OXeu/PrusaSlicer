@@ -68,7 +68,7 @@ struct Extrusion
 
 using Extrusions = std::vector<Extrusion>;
 
-std::vector<Extrusions> get_extrusions(tcb::span<const Slic3r::Layer *const> object_layers);
+std::vector<Extrusions> get_extrusions(tcb::span<std::shared_ptr<Layer>> object_layers);
 
 struct BoundedPolygon {
     Polygon polygon;

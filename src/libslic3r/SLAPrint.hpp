@@ -426,7 +426,7 @@ private:
     std::unique_ptr<HollowingData> m_hollowing_data;
 };
 
-using PrintObjects = std::vector<SLAPrintObject*>;
+using PrintObjects = std::vector<std::shared_ptr<SLAPrintObject>>;
 
 using SliceRecord  = SLAPrintObject::SliceRecord;
 
@@ -508,14 +508,14 @@ public:
     // PrintObject by its ObjectID, to be used to uniquely bind slicing warnings to their source PrintObjects
     // in the notification center.
     const SLAPrintObject* get_print_object_by_model_object_id(ObjectID object_id) const {
-        auto it = std::find_if(m_objects.begin(), m_objects.end(),
-            [object_id](const SLAPrintObject* obj) { return obj->model_object()->id() == object_id; });
-        return (it == m_objects.end()) ? nullptr : *it;
+        const auto it = std::find_if(m_objects.begin(), m_objects.end(),
+            [object_id](const auto &obj) { return obj->model_object()->id() == object_id; });
+        return (it == m_objects.end()) ? nullptr : it->get();
     }
     const SLAPrintObject* get_object(ObjectID object_id) const {
-        auto it = std::find_if(m_objects.begin(), m_objects.end(),
-            [object_id](const SLAPrintObject *obj) { return obj->id() == object_id; });
-        return (it == m_objects.end()) ? nullptr : *it;
+        const auto it = std::find_if(m_objects.begin(), m_objects.end(),
+            [object_id](const auto &obj) { return obj->id() == object_id; });
+        return (it == m_objects.end()) ? nullptr : it->get();
     }
 
     const SLAPrintConfig&       print_config() const { return m_print_config; }
