@@ -47,6 +47,8 @@
 #include <set>
 #include <tcbspan/span.hpp>
 
+#include "Serialize/Serialize.h"
+
 namespace Slic3r {
 
 class GCodeGenerator;
@@ -272,6 +274,7 @@ private:
 
 class PrintObject : public PrintObjectBaseWithState<Print, PrintObjectStep, posCount>
 {
+    friend class Serialize;
 private: // Prevents erroneous use by other classes.
     typedef PrintObjectBaseWithState<Print, PrintObjectStep, posCount> Inherited;
 
@@ -332,7 +335,7 @@ public:
     SupportLayer*   add_support_layer(int id, int interface_id, coordf_t height, coordf_t print_z);
     SupportLayerPtrs::iterator insert_support_layer(SupportLayerPtrs::iterator pos, size_t id, size_t interface_id, coordf_t height, coordf_t print_z, coordf_t slice_z);
     void            delete_support_layer(int idx);
-    
+
     // Initialize the layer_height_profile from the model_object's layer_height_profile, from model_object's layer height table, or from slicing parameters.
     // Returns true, if the layer_height_profile was changed.
     static bool     update_layer_height_profile(const ModelObject &model_object, const SlicingParameters &slicing_parameters, std::vector<coordf_t> &layer_height_profile);
@@ -587,6 +590,7 @@ using PrintRegionPtrs          = std::vector<PrintRegion*>;
 // The complete print tray with possibly multiple objects.
 class Print : public PrintBaseWithState<PrintStep, psCount>
 {
+    friend class Serialize;
 private: // Prevents erroneous use by other classes.
     typedef PrintBaseWithState<PrintStep, psCount> Inherited;
     // Bool indicates if supports of PrintObject are top-level contour.

@@ -930,7 +930,7 @@ static inline std::optional<std::string> find_M84(const std::string &gcode) {
 void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb)
 {
     const bool export_to_binary_gcode = print.full_print_config().option<ConfigOptionBool>("binary_gcode")->value;
-
+    Serialize::print_to_json(print);
     std::string prepared_by_info;
     if (const char* extras = boost::nowide::getenv("SLIC3R_PREPARED_BY_INFO"); extras) {
         std::string str(extras);

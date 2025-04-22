@@ -534,6 +534,7 @@ set(SLIC3R_SOURCES
     Utils/DirectoriesUtils.cpp
     Utils/JsonUtils.hpp
     Utils/JsonUtils.cpp
+        Serialize/Serialize.cpp
 )
 
 if (APPLE)
