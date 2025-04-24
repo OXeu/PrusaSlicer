@@ -164,6 +164,7 @@ using LayerSlices = std::vector<LayerSlice>;
 
 class Layer 
 {
+    friend class Serialize;
 public:
     // Sequential index of this layer in PrintObject::m_layers, offsetted by the number of raft layers.
     size_t              id() const          { return m_id; }
@@ -296,6 +297,7 @@ public:
 
 protected:
     friend class PrintObject;
+    friend class Serialize;
 
     // The constructor has been made public to be able to insert additional support layers for the skirt or a wipe tower
     // between the raft and the object first layer.

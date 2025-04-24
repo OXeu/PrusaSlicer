@@ -16,7 +16,8 @@
 
 namespace Slic3r 
 {
-class PrintObject;
+    class Serialize;
+    class PrintObject;
 
 namespace FillLightning
 {
@@ -40,6 +41,7 @@ namespace FillLightning
  */
 class Generator  // "Just like Nicola used to make!"
 {
+friend class Slic3r::Serialize;
 public:
     /*!
      * Create a generator to fill a certain mesh with infill.

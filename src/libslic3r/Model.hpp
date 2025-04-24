@@ -1137,6 +1137,7 @@ enum ModelInstanceEPrintVolumeState : unsigned char
 // Knows the affine transformation of an object.
 class ModelInstance final : public ObjectBase
 {
+    friend class Serialize;
 private:
     Geometry::Transformation m_transformation;
 

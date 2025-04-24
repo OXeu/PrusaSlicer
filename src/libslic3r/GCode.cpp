@@ -70,6 +70,8 @@
 
 #include <tbb/parallel_for.h>
 
+#include "Serialize/Serialize.hpp"
+
 // Intel redesigned some TBB interface considerably when merging TBB with their oneAPI set of libraries, see GH #7332.
 // We are using quite an old TBB 2017 U7. Before we update our build servers, let's use the old API, which is deprecated in up to date TBB.
 #if ! defined(TBB_VERSION_MAJOR)

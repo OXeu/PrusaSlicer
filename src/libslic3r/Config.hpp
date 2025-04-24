@@ -2768,6 +2768,7 @@ private:
 // In Slic3r, the dynamic config is mostly used at the user interface layer.
 class DynamicConfig : public virtual ConfigBase
 {
+    friend class Serialize;
 public:
     DynamicConfig() = default;
     DynamicConfig(const DynamicConfig &rhs) { *this = rhs; }

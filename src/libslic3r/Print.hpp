@@ -47,10 +47,8 @@
 #include <set>
 #include <tcbspan/span.hpp>
 
-#include "Serialize/Serialize.h"
-
 namespace Slic3r {
-
+class Serialize;
 class GCodeGenerator;
 class Layer;
 class ModelObject;
@@ -96,6 +94,7 @@ enum PrintObjectStep : unsigned int {
 // sharing the same config (including the same assigned extruder(s))
 class PrintRegion
 {
+    friend class Serialize;
 public:
     PrintRegion() = default;
     PrintRegion(const PrintRegionConfig &config);
