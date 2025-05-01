@@ -50,6 +50,8 @@
 #include <set>
 #include <tcbspan/span.hpp>
 
+#include "Utils/CerealUtils.hpp"
+
 namespace Slic3r {
 
 class GCodeGenerator;
@@ -141,6 +143,12 @@ private:
     int                m_print_region_id { -1 };
     int                m_print_object_region_id { -1 };
     int                m_ref_cnt { 0 };
+    friend class cereal::access;
+    template<class Archive>
+      void serialize(Archive & ar)
+    {
+        ar(m_config,m_config_hash,m_print_region_id,m_print_object_region_id,m_ref_cnt);
+    }
 };
 
 inline bool operator==(const PrintRegion &lhs, const PrintRegion &rhs) { return lhs.config_hash() == rhs.config_hash() && lhs.config() == rhs.config(); }
@@ -164,6 +172,14 @@ struct PrintInstance
 	const ModelInstance *model_instance;
 	// Shift of this instance's center into the world coordinates.
 	Point 				 shift;
+    friend class cereal::access;
+    template<class Archive>
+      void serialize(Archive & ar)
+    {
+        printf("model instance: %p", model_instance);
+        ar(*model_instance);
+        ar(shift);
+    }
 };
 
 typedef std::vector<PrintInstance> PrintInstances;
@@ -179,6 +195,12 @@ public:
     struct VolumeExtents {
         ObjectID             volume_id;
         BoundingBox          bbox;
+        friend class cereal::access;
+        template<class Archive>
+          void serialize(Archive & ar)
+        {
+            ar(volume_id, bbox);
+        }
     };
 
     struct VolumeRegion
@@ -203,6 +225,34 @@ public:
         int              parent { -1 };
         // Pointer to PrintObjectRegions::all_regions.
         PrintRegion     *region { nullptr };
+        friend class cereal::access;
+        template<class Archive>
+            void serialize(Archive & ar)
+            {
+                ar(extruder_id, parent);
+                CEREAL_AR_PTR_SAVE(region)
+            }
+        /*template<class Archive>
+          void save(Archive & ar, const PaintedRegion& m)
+        {
+            ar(m.extruder_id, m.parent);
+            ar(m.region == nullptr);
+            if (m.region != nullptr) {
+                ar(*m.region);
+            }
+        }
+        template<class Archive>
+          void load(Archive & ar, PaintedRegion& m)
+        {
+            ar(m.extruder_id, m.parent);
+            bool isNull;
+            ar(isNull);
+            if (!isNull) {
+                PrintRegion region;
+                ar(region);
+                m.region = &region;
+            }
+        }*/
     };
 
     struct LayerRangeRegions;
@@ -241,6 +291,21 @@ public:
             auto it = lower_bound_by_predicate(this->volumes.begin(), this->volumes.end(), [id](const VolumeExtents &l) { return l.volume_id < id; });
             return it != this->volumes.end() && it->volume_id == id;
         }
+        friend class cereal::access;
+        template<class Archive>
+          void save(Archive & ar) const
+        {
+            // volume_regions, fuzzy_skin_painted_regions 在生成 gcode 时会自动生成，无需序列化
+            ar(layer_height_range,volumes,painted_regions);
+            CEREAL_AR_PTR_SAVE(config)
+        }
+        template<class Archive>
+          void load(Archive & ar)
+        {
+            // volume_regions, fuzzy_skin_painted_regions 在生成 gcode 时会自动生成，无需序列化
+            ar(layer_height_range,volumes,painted_regions);
+            CEREAL_AR_PTR_LOAD(DynamicPrintConfig, config)
+        }
     };
 
     struct GeneratedSupportPoints{
@@ -266,6 +331,13 @@ public:
         cached_volume_ids.clear();
     }
 
+    friend class cereal::access;
+    template<class Archive>
+      void serialize(Archive & ar)
+    {
+        ar(all_regions,layer_ranges,trafo_bboxes,m_ref_cnt);
+    }
+
 private:
     friend class PrintObject;
     // Number of PrintObjects generated from the same ModelObject and sharing the regions.
@@ -275,6 +347,36 @@ private:
 
 class PrintObject : public PrintObjectBaseWithState<Print, PrintObjectStep, posCount>
 {
+    friend class cereal::access;
+    template<class Archive>
+    void serialize(Archive & ar)
+    {
+        printf("m_instance: %lu", m_instances.size());
+        ar(m_size, m_config, m_trafo, m_instances, m_center_offset);
+        CEREAL_AR_PTR_SAVE(m_shared_regions)
+        ar(m_slicing_params);
+        ar(m_typed_slices);
+    }
+    /*template<class Archive>
+      void save(Archive & ar, PrintObject const & m)
+    {
+        printf("m_instance: %lu", m.m_instances.size());
+        ar(m.m_size, m.m_config, m.m_trafo, m.m_instances, m.m_center_offset);
+        CEREAL_AR_PTR_SAVE(m.m_shared_regions)
+        ar(m.m_slicing_params);
+        ar(m.m_typed_slices);
+    }
+    template<class Archive>
+      void load(Archive & ar, PrintObject & m)
+    {
+        ar(m.m_size, m.m_config, m.m_trafo, m.m_instances, m.m_center_offset);
+        CEREAL_AR_PTR_LOAD(PrintObjectRegions, m.m_shared_regions)
+        ar(m.m_slicing_params);
+        ar(m.m_typed_slices);
+        for (auto& instance: m.m_instances) {
+            instance.print_object = this;
+        }
+    }*/
 private: // Prevents erroneous use by other classes.
     typedef PrintObjectBaseWithState<Print, PrintObjectStep, posCount> Inherited;
 
@@ -374,12 +476,12 @@ public:
 
     // Helpers to project custom facets on slices
     void project_and_append_custom_facets(bool seam, TriangleStateType type, std::vector<Polygons>& expolys) const;
-
 private:
     // to be called from Print only.
     friend class Print;
     friend class PrintBaseWithState<PrintStep, psCount>;
 
+	PrintObject();
 	PrintObject(Print* print, ModelObject* model_object, const Transform3d& trafo, PrintInstances&& instances);
     ~PrintObject() override {
         if (m_shared_regions && --m_shared_regions->m_ref_cnt == 0)
@@ -639,9 +741,16 @@ private: // Prevents erroneous use by other classes.
 public:
     friend class cereal::access;
     template<class Archive>
-      void serialize(Archive & ar)
+    void serialize(Archive & ar)
         {
-            ar( m_config, m_print_statistics );
+            ar( m_config, m_print_statistics, m_default_object_config, m_default_region_config );
+            printf("objects: %lu", m_objects.size());
+            for (const auto obj: m_objects) {
+                ar(*obj);
+            }
+            for (const auto obj: m_print_regions) {
+                ar(*obj);
+            }
         }
     Print() = default;
 	virtual ~Print() { this->clear(); }

@@ -666,23 +666,24 @@ private:
         assert(this->config.id().invalid());
         assert(this->layer_height_profile.id().invalid());
 	}
-	template<class Archive> void serialize(Archive &ar) {
-		ar(cereal::base_class<ObjectBase>(this));
-		Internal::StaticSerializationWrapper<ModelConfigObject> config_wrapper(config);
-        Internal::StaticSerializationWrapper<LayerHeightProfile> layer_heigth_profile_wrapper(layer_height_profile);
-        ar(name, input_file, instances, volumes, config_wrapper, layer_config_ranges, layer_heigth_profile_wrapper, 
-            sla_support_points, sla_points_status, sla_drain_holes, printable, origin_translation,
-            m_bounding_box_approx, m_bounding_box_approx_valid, 
-            m_bounding_box_exact, m_bounding_box_exact_valid, m_min_max_z_valid,
-            m_raw_bounding_box, m_raw_bounding_box_valid, m_raw_mesh_bounding_box, m_raw_mesh_bounding_box_valid,
-            cut_connectors, cut_id);
-	}
 
     // Called by Print::validate() from the UI thread.
     unsigned int update_instances_print_volume_state(const BuildVolume &build_volume);
 
     // Called by min_z(), max_z()
     void update_min_max_z();
+public:
+    template<class Archive> void serialize(Archive &ar) {
+        // ar(cereal::base_class<ObjectBase>(this));
+        Internal::StaticSerializationWrapper<ModelConfigObject> config_wrapper(config);
+        Internal::StaticSerializationWrapper<LayerHeightProfile> layer_heigth_profile_wrapper(layer_height_profile);
+        ar(name, input_file, instances, volumes, config_wrapper, layer_config_ranges, layer_heigth_profile_wrapper,
+            sla_support_points, sla_points_status, sla_drain_holes, printable, origin_translation,
+            m_bounding_box_approx, m_bounding_box_approx_valid,
+            m_bounding_box_exact, m_bounding_box_exact_valid, m_min_max_z_valid,
+            m_raw_bounding_box, m_raw_bounding_box_valid, m_raw_mesh_bounding_box, m_raw_mesh_bounding_box_valid,
+            cut_connectors, cut_id);
+    }
 };
 
 class FacetsAnnotation final : public ObjectWithTimestamp {
@@ -1191,6 +1192,7 @@ public:
     bool is_printable() const { return object->printable && printable && (print_volume_state == ModelInstancePVS_Inside); }
 
     void invalidate_object_bounding_box() { object->invalidate_bounding_box(); }
+    ModelInstance(const ModelInstance &rhs) = default;
 
 protected:
     friend class Print;
@@ -1198,7 +1200,6 @@ protected:
     friend class Model;
     friend class ModelObject;
 
-    explicit ModelInstance(const ModelInstance &rhs) = default;
     void     set_model_object(ModelObject *model_object) { object = model_object; }
 
 private:
@@ -1211,16 +1212,19 @@ private:
     explicit ModelInstance(ModelObject *object, const ModelInstance &other) :
         m_transformation(other.m_transformation), print_volume_state(ModelInstancePVS_Inside), printable(other.printable), object(object) { assert(this->id().valid() && this->id() != other.id()); }
 
-    explicit ModelInstance(ModelInstance &&rhs) = delete;
-    ModelInstance& operator=(const ModelInstance &rhs) = delete;
-    ModelInstance& operator=(ModelInstance &&rhs) = delete;
+    // ModelInstance(ModelInstance &&rhs) = delete;
+    // ModelInstance& operator=(const ModelInstance &rhs) = delete;
+    // ModelInstance& operator=(ModelInstance &&rhs) = delete;
 
 	friend class cereal::access;
 	friend class UndoRedo::StackImpl;
 	// Used for deserialization, therefore no IDs are allocated.
 	ModelInstance() : ObjectBase(-1), object(nullptr) { assert(this->id().invalid()); }
 	template<class Archive> void serialize(Archive &ar) {
-        ar(m_transformation, print_volume_state, printable);
+        // todo ar(m_transformation);
+	    ar(print_volume_state, printable);
+		printf("model object: %p", object);
+	    ar(*object);
     }
 };
 

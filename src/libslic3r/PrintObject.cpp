@@ -3432,6 +3432,9 @@ void PrintObject::project_and_append_custom_facets(
         }
 }
 
+PrintObject::PrintObject(): PrintObjectBaseWithState(nullptr, nullptr) {
+}
+
 const Layer* PrintObject::get_layer_at_printz(coordf_t print_z) const {
     auto it = Slic3r::lower_bound_by_predicate(m_layers.begin(), m_layers.end(), [print_z](const Layer *layer) { return layer->print_z < print_z; });
     return (it == m_layers.end() || (*it)->print_z != print_z) ? nullptr : *it;
