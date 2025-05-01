@@ -13,10 +13,16 @@ namespace Slic3r {
     class Serialize {
     public:
         static json print_regions_to_json(const PrintRegionPtrs & vector);
+
+        static json print_statistics_to_json(const Slic3r::PrintStatistics & print_statistics);
+
         static void print_to_json(const Print& print);
         static json print_objects_to_json(const std::vector<PrintObject*> &print_objects);
         static json transform3d_to_json(const Transform3d& v);
         static json vec3crd_to_json(const Vec3crd* vec);
+
+        static json model_object_to_json(Slic3r::ModelObject * object);
+
         static json model_instance_to_json(const ModelInstance* v);
         static json print_instances_to_json(const std::vector<PrintInstance>& vec);
         static json vec2crd_to_json(const Vec2crd& vec);

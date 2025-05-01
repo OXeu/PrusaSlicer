@@ -9,19 +9,51 @@
 
 namespace Slic3r {
     json Serialize::print_regions_to_json(const PrintRegionPtrs &vector) {
+        json j = json::array();
+        for (const auto& region: vector) {
+            json jj;
+            jj["m_config"] = region->m_config.to_json();
+            jj["m_config_hash"] = region->m_config_hash;
+            jj["m_print_region_id"] = region->m_print_region_id;
+            jj["m_print_object_region_id"] = region->m_print_object_region_id;
+            jj["m_ref_cnt"] = region->m_ref_cnt;
+            j.push_back(jj);
+        }
+        return j;
+    }
+
+    json Serialize::print_statistics_to_json(const Slic3r::PrintStatistics &print_statistics) {
         json j;
-        // todo
+        j["normal_print_time_seconds"] = print_statistics.normal_print_time_seconds;
+        j["silent_print_time_seconds"] = print_statistics.silent_print_time_seconds;
+        j["estimated_normal_print_time"] = print_statistics.estimated_normal_print_time;
+        j["estimated_silent_print_time"] = print_statistics.estimated_silent_print_time;
+        j["total_used_filament"] = print_statistics.total_used_filament;
+        j["total_extruded_volume"] = print_statistics.total_extruded_volume;
+        j["total_cost"] = print_statistics.total_cost;
+        j["total_toolchanges"] = print_statistics.total_toolchanges;
+        j["total_weight"] = print_statistics.total_weight;
+        j["total_wipe_tower_cost"] = print_statistics.total_wipe_tower_cost;
+        j["total_wipe_tower_filament"] = print_statistics.total_wipe_tower_filament;
+        j["total_wipe_tower_filament_weight"] = print_statistics.total_wipe_tower_filament_weight;
+        j["printing_extruders"] = print_statistics.printing_extruders;
+        j["initial_extruder_id"] = print_statistics.initial_extruder_id;
+        j["initial_filament_type"] = print_statistics.initial_filament_type;
+        j["printing_filament_types"] = print_statistics.printing_filament_types;
+        j["filament_stats"] = print_statistics.filament_stats;
         return j;
     }
 
     void Serialize::print_to_json(const Print &print) {
         json j;
-        // todo
         j["m_config"] = print.m_config.to_json();
         j["m_default_object_config"] = print.m_default_object_config.to_json();
         j["m_default_region_config"] = print.m_default_region_config.to_json();
         j["m_objects"] = print_objects_to_json(print.m_objects);
         j["m_print_regions"] = print_regions_to_json(print.m_print_regions);
+        // m_skirt, m_brim, m_first_layer_convex_hull,m_skirt_convex_hull, m_conflict_result 在 process 中构建，无需序列化
+        // m_wipe_tower_data 需要观察
+        j["m_print_regions"] = print_statistics_to_json(print.m_print_statistics);
         std::ofstream f("example.json");
         const std::string serialized_string = j.dump();
         f << serialized_string;
@@ -59,6 +91,12 @@ namespace Slic3r {
         return j;
     }
 
+    json Serialize::model_object_to_json(Slic3r::ModelObject *object) {
+        nlohmann::json j = nlohmann::json::parse(object->to_json());
+        // todo
+        return j;
+    }
+
     json Serialize::print_instances_to_json(const std::vector<PrintInstance> &vec) {
         json j = json::array();
         for (const auto &d: vec) {
@@ -72,9 +110,12 @@ namespace Slic3r {
 
     json Serialize::model_instance_to_json(const ModelInstance *v) {
         json j;
+        j["timestamp"] = v->timestamp();
+        j["id"] = v->id().id;
         j["printable"] = v->printable;
         j["print_volume_state"] = v->print_volume_state;
         j["print_volume_state"] = transform3d_to_json(v->m_transformation.get_matrix());
+        j["object"] = model_object_to_json(v->object);
         return j;
     }
 
@@ -225,7 +266,6 @@ namespace Slic3r {
         json jj = json::array();
         for (const auto &layer: vector) {
             json j = layer_to_json(layer);
-            // todo 含有额外字段
             j["m_interface_id"] = layer->m_interface_id;
             jj.push_back(j);
         }
