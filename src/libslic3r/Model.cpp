@@ -44,9 +44,9 @@ Model& Model::assign_copy(const Model &rhs)
     // copy materials
     this->clear_materials();
     this->materials = rhs.materials;
-    for (std::pair<const t_model_material_id, ModelMaterial*> &m : this->materials) {
+    for (std::pair<const t_model_material_id, std::shared_ptr<ModelMaterial>> &m : this->materials) {
         // Copy including the ID and m_model.
-        m.second = new ModelMaterial(*m.second);
+        m.second = std::make_shared<ModelMaterial>(*m.second);
         m.second->set_model(this);
     }
     // copy objects
@@ -72,7 +72,7 @@ Model& Model::assign_copy(Model &&rhs)
 	// Move materials, adjust the parent pointer.
     this->clear_materials();
     this->materials = std::move(rhs.materials);
-    for (std::pair<const t_model_material_id, ModelMaterial*> &m : this->materials)
+    for (std::pair<const t_model_material_id, std::shared_ptr<ModelMaterial>> &m : this->materials)
         m.second->set_model(this);
     rhs.materials.clear();
     // Move objects, adjust the parent pointer.
@@ -92,7 +92,7 @@ Model& Model::assign_copy(Model &&rhs)
 void Model::assign_new_unique_ids_recursive()
 {
     this->set_new_unique_id();
-    for (std::pair<const t_model_material_id, ModelMaterial*> &m : this->materials)
+    for (std::pair<const t_model_material_id, std::shared_ptr<ModelMaterial>> &m : this->materials)
         m.second->assign_new_unique_ids_recursive();
     for (ModelObject *model_object : this->objects)
         model_object->assign_new_unique_ids_recursive();
@@ -100,7 +100,7 @@ void Model::assign_new_unique_ids_recursive()
 
 void Model::update_links_bottom_up_recursive()
 {
-	for (std::pair<const t_model_material_id, ModelMaterial*> &kvp : this->materials)
+	for (std::pair<const t_model_material_id, std::shared_ptr<ModelMaterial>> &kvp : this->materials)
 		kvp.second->set_model(this);
 	for (ModelObject *model_object : this->objects) {
 		model_object->set_model(this);
@@ -234,7 +234,7 @@ void Model::delete_material(t_model_material_id material_id)
 {
     ModelMaterialMap::iterator i = this->materials.find(material_id);
     if (i != this->materials.end()) {
-        delete i->second;
+        delete i->second.get();
         this->materials.erase(i);
     }
 }
@@ -242,7 +242,7 @@ void Model::delete_material(t_model_material_id material_id)
 void Model::clear_materials()
 {
     for (auto &m : this->materials)
-        delete m.second;
+        delete m.second.get();
     this->materials.clear();
 }
 
@@ -250,8 +250,10 @@ ModelMaterial* Model::add_material(t_model_material_id material_id)
 {
     assert(! material_id.empty());
     ModelMaterial* material = this->get_material(material_id);
-    if (material == nullptr)
-        material = this->materials[material_id] = new ModelMaterial(this);
+    if (material == nullptr) {
+        this->materials[material_id] = std::make_shared<ModelMaterial>(this);
+        material = this->materials[material_id].get();
+    }
     return material;
 }
 
@@ -264,7 +266,7 @@ ModelMaterial* Model::add_material(t_model_material_id material_id, const ModelM
     // set new material
 	material = new ModelMaterial(other);
 	material->set_model(this);
-    this->materials[material_id] = material;
+    this->materials[material_id] = std::make_shared<ModelMaterial>(*material);
     return material;
 }
 

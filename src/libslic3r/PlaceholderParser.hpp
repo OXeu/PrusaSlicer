@@ -23,6 +23,12 @@ class DynamicPrintConfig;
 class PlaceholderParser
 {
 public:
+    friend class cereal::access;
+    template<class Archive>
+    void serialize(Archive & ar)
+    {
+        ar( m_config );
+    }
     // Context to be shared during multiple executions of the PlaceholderParser.
     // The context is kept external to the PlaceholderParser, so that the same PlaceholderParser
     // may be called safely from multiple threads.

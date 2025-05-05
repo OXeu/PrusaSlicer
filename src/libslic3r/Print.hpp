@@ -174,10 +174,16 @@ struct PrintInstance
 	Point 				 shift;
     friend class cereal::access;
     template<class Archive>
-      void serialize(Archive & ar)
+      void save(Archive & ar) const
     {
         printf("model instance: %p", model_instance);
-        ar(*model_instance);
+        CEREAL_AR_PTR_SAVE(model_instance)
+        ar(shift);
+    }
+    template<class Archive>
+      void load(Archive & ar)
+    {
+        CEREAL_AR_PTR_LOAD(ModelInstance, model_instance)
         ar(shift);
     }
 };
@@ -741,17 +747,22 @@ private: // Prevents erroneous use by other classes.
 public:
     friend class cereal::access;
     template<class Archive>
-    void serialize(Archive & ar)
-        {
-            ar( m_config, m_print_statistics, m_default_object_config, m_default_region_config );
-            printf("objects: %lu", m_objects.size());
-            for (const auto obj: m_objects) {
-                ar(*obj);
-            }
-            for (const auto obj: m_print_regions) {
-                ar(*obj);
-            }
-        }
+    void save(Archive & ar) const
+    {
+        ar(cereal::base_class<PrintBaseWithState>(this));
+        ar( m_config, m_print_statistics, m_default_object_config, m_default_region_config );
+        printf("objects: %lu", m_objects.size());
+        CEREAL_AR_VEC_PTR_SAVE(m_objects)
+        CEREAL_AR_VEC_PTR_SAVE(m_print_regions)
+    }
+    template<class Archive>
+    void load(Archive & ar)
+    {
+        ar(cereal::base_class<PrintBaseWithState>(this));
+        ar( m_config, m_print_statistics, m_default_object_config, m_default_region_config );
+        CEREAL_AR_VEC_PTR_LOAD(PrintObject, m_objects)
+        CEREAL_AR_VEC_PTR_LOAD(PrintRegion, m_print_regions)
+    }
     Print() = default;
 	virtual ~Print() { this->clear(); }
 

@@ -81,6 +81,12 @@ public:
             }
             return invalidated;
         }
+        friend class cereal::access;
+        template<class Archive>
+        void serialize(Archive & ar)
+        {
+            ar(state, timestamp, enabled);
+        }
     };
 
     struct Warning
@@ -97,12 +103,25 @@ public:
         // Otherwise message_id identifies the message. For example, if the message contains a varying number, then
         // it cannot itself identify the message type.
         int 			message_id;
+        friend class cereal::access;
+        template<class Archive>
+        void serialize(Archive & ar)
+        {
+            ar(level, current, message, message_id);
+        }
     };
 
     struct StateWithWarnings : public StateWithTimeStamp
     {
     	void 	mark_warnings_non_current() { for (auto &w : warnings) w.current = false; }
         std::vector<Warning>    warnings;
+        friend class cereal::access;
+        template<class Archive>
+        void serialize(Archive & ar)
+        {
+            ar(cereal::base_class<StateWithTimeStamp>(this));
+            ar(warnings);
+        }
     };
 
 protected:
@@ -117,6 +136,13 @@ template <class StepType, size_t COUNT>
 class PrintState : public PrintStateBase
 {
 public:
+    friend class cereal::access;
+    template<class Archive>
+    void serialize(Archive & ar)
+    {
+        ar(cereal::base_class<PrintStateBase>(this));
+        ar(m_state, m_step_active);
+    }
     PrintState() {}
 
     StateWithTimeStamp state_with_timestamp(StepType step, std::mutex &mtx) const {
@@ -408,6 +434,27 @@ private:
 class PrintBase : public ObjectBase
 {
 public:
+    friend class cereal::access;
+    template<class Archive>
+    void save(Archive & ar) const
+    {
+        ar(cereal::base_class<ObjectBase>(this));
+        ar( m_model );
+        ar( m_full_print_config );
+        ar( m_placeholder_parser );
+        ar( m_cancel_status.load() );
+    }
+    template<class Archive>
+    void load(Archive & ar)
+    {
+        ar(cereal::base_class<ObjectBase>(this));
+        ar( m_model );
+        ar( m_full_print_config );
+        ar( m_placeholder_parser );
+        CancelStatus status;
+        ar( status );
+        m_cancel_status.exchange(status);
+    }
 	PrintBase() : m_placeholder_parser(&m_full_print_config) { this->restart(); }
     inline virtual ~PrintBase() {}
 
@@ -579,6 +626,13 @@ template<typename PrintStepEnumType, const size_t COUNT>
 class PrintBaseWithState : public PrintBase
 {
 public:
+    friend class cereal::access;
+    template<class Archive>
+    void serialize(Archive & ar)
+    {
+        ar(cereal::base_class<PrintBase>(this));
+        ar( m_state );
+    }
     using                           PrintStepEnum       = PrintStepEnumType;
     static constexpr const size_t   PrintStepEnumSize   = COUNT;
 
@@ -814,5 +868,7 @@ private:
 };
 
 } // namespace Slic3r
-
+namespace cereal {
+    template <class Archive, typename PrintStepEnumType, const size_t COUNT> struct specialize<Archive, Slic3r::PrintBaseWithState<PrintStepEnumType, COUNT>, cereal::specialization::member_serialize> {};
+}
 #endif /* slic3r_PrintBase_hpp_ */

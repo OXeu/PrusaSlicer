@@ -55,11 +55,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <cereal/types/map.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/complex.hpp>
-#include <cereal/types/memory.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/find.hpp>
@@ -932,15 +927,24 @@ static inline std::optional<std::string> find_M84(const std::string &gcode) {
     return std::nullopt;
 }
 
-void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb)
+void GCodeGenerator::_do_export(Print& print_sub, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb)
 {
-    std::ofstream os("out.bin", std::ios_base::binary);
+    // std::ofstream os("out.bin", std::ios_base::binary);
+    std::stringstream os;
     {
         cereal::BinaryOutputArchive ar(os);
-        print.serialize(ar);
+        ar(print_sub);
     }
-    const bool export_to_binary_gcode = print.full_print_config().option<ConfigOptionBool>("binary_gcode")->value;
+    Print print_gen;
+    {
+        cereal::BinaryInputArchive iarchive(os); // Create an input archive
 
+        iarchive(print_gen); // Read the data from the archive
+    }
+    Print& print = print_gen;
+    printf("\nprint success: %p", &print);
+    const bool export_to_binary_gcode = print.full_print_config().option<ConfigOptionBool>("binary_gcode")->value;
+    printf("\nprint 1: export to binary: %d", export_to_binary_gcode);
     std::string prepared_by_info;
     if (const char* extras = boost::nowide::getenv("SLIC3R_PREPARED_BY_INFO"); extras) {
         std::string str(extras);
@@ -951,37 +955,43 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
             std::terminate();
         }
     }
+    printf("\nprint 2");
 
     // if exporting gcode in binary format: 
     // we generate here the data to be passed to the post-processor, who is responsible to export them to file 
     // 1) generate the thumbnails
     // 2) collect the config data
     if (export_to_binary_gcode) {
+        printf("\nprint branch export");
         bgcode::binarize::BinaryData& binary_data = m_processor.get_binary_data();
 
         // Unit tests or command line slicing may not define "thumbnails" or "thumbnails_format".
         // If "thumbnails_format" is not defined, export to PNG.
         auto [thumbnails, errors] = GCodeThumbnails::make_and_check_thumbnail_list(print.full_print_config());
+        printf("\nprint 3");
 
         if (errors != enum_bitmask<ThumbnailError>()) {
             std::string error_str = format("Invalid thumbnails value:");
             error_str += GCodeThumbnails::get_error_string(errors);
             throw Slic3r::ExportError(error_str);
         }
+        printf("\nprint 4");
 
         if (!thumbnails.empty())
             GCodeThumbnails::generate_binary_thumbnails(
                 thumbnail_cb, binary_data.thumbnails, thumbnails,
                 [&print]() { print.throw_if_canceled(); });
-
+        printf("\nprint 5");
         // file data
         binary_data.file_metadata.raw_data.emplace_back("Producer", std::string(SLIC3R_APP_NAME) + " " + std::string(SLIC3R_VERSION));
         binary_data.file_metadata.raw_data.emplace_back("Produced on", Utils::utc_timestamp());
         if (! prepared_by_info.empty())
             binary_data.file_metadata.raw_data.emplace_back("Prepared by", prepared_by_info);
+        printf("\nprint 6");
 
         // config data
         encode_full_config(*m_print, binary_data.slicer_metadata.raw_data);
+        printf("\nprint 7");
 
         // printer data - this section contains duplicates from the slicer metadata
         // that we just created. Find and copy the entries that we want to duplicate.
@@ -990,21 +1000,25 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
                       "brim_width", "fill_density", "layer_height", "temperature", "ironing", "support_material", "extruder_colour"};
         assert(std::is_sorted(slicer_metadata.begin(), slicer_metadata.end(),
                               [](const auto& a, const auto& b) { return a.first < b.first; }));
+        printf("\nprint 8");
         for (const std::string& key : keys_to_duplicate) {
             auto it = std::lower_bound(slicer_metadata.begin(), slicer_metadata.end(), std::make_pair(key, 0),
                 [](const auto& a, const auto& b) { return a.first < b.first; });
             if (it != slicer_metadata.end() && it->first == key)
                 binary_data.printer_metadata.raw_data.emplace_back(*it);
         }
+        printf("\nprint 9");
     }
     
     // modifies m_silent_time_estimator_enabled
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled);
+    printf("\nprint 10");
 
     if (! print.config().gcode_substitutions.values.empty()) {
         m_find_replace = make_unique<GCodeFindReplace>(print.config());
         file.set_find_replace(m_find_replace.get(), false);
     }
+    printf("\nprint 11");
 
     // resets analyzer's tracking data
     m_last_height  = 0.f;
@@ -1016,6 +1030,8 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
     // change_layer() in turn increments the progress bar status.
     m_layer_count = 0;
     if (print.config().complete_objects.value) {
+        printf("\nprint 12");
+
         // Add each of the object's layers separately.
         for (auto object : print.objects()) {
             std::vector<coordf_t> zs;
@@ -1027,14 +1043,19 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
             std::sort(zs.begin(), zs.end());
             m_layer_count += (unsigned int)(object->instances().size() * (std::unique(zs.begin(), zs.end()) - zs.begin()));
         }
+        printf("\nprint 13");
+
     }
     print.throw_if_canceled();
+    printf("\nprint 14");
 
     m_enable_cooling_markers = true;
     this->apply_print_config(print.config());
+    printf("\nprint 15");
 
     m_volumetric_speed = DoExport::autospeed_volumetric_limit(print);
     print.throw_if_canceled();
+    printf("\nprint 16");
 
     if (print.config().spiral_vase.value)
         m_spiral_vase = make_unique<SpiralVase>(print.config());
@@ -1043,6 +1064,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
         print.config().max_volumetric_extrusion_rate_slope_negative.value > 0)
         m_pressure_equalizer = make_unique<PressureEqualizer>(print.config());
     m_enable_extrusion_role_markers = (bool)m_pressure_equalizer;
+    printf("\nprint 17");
 
     if (print.config().avoid_crossing_curled_overhangs){
         this->m_avoid_crossing_curled_overhangs.init_bed_shape(get_bed_shape(print.config()));
@@ -1055,6 +1077,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
             file.write_format("; prepared by %s\n", prepared_by_info.c_str());
         file.write_format("\n");
     }
+    printf("\nprint 18");
 
     if (! export_to_binary_gcode) {
         // if exporting gcode in ascii format, generate the thumbnails here
@@ -1065,6 +1088,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
             error_str += GCodeThumbnails::get_error_string(errors);
             throw Slic3r::ExportError(error_str);
         }
+        printf("\nprint 19");
 
         if (!thumbnails.empty())
             GCodeThumbnails::export_thumbnails_to_file(thumbnail_cb, thumbnails,
@@ -1085,6 +1109,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
         if (! lines.empty())
             file.write("\n");
     }
+    printf("\nprint 20");
     print.throw_if_canceled();
 
     // Write some terse information on the slicing parameters.
@@ -1108,6 +1133,8 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
         }
         print.throw_if_canceled();
     }
+    printf("\nprint 21");
+
 
     // adds tags for time estimators
     if (print.config().remaining_times.value)
@@ -1123,6 +1150,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
     // Enable passing global variables between PlaceholderParser invocations.
     m_placeholder_parser_integration.context.global_config = std::make_unique<DynamicConfig>();
     print.update_object_placeholders(m_placeholder_parser_integration.parser.config_writable(), ".gcode");
+    printf("\nprint 22");
 
     // Get optimal tool ordering to minimize tool switches of a multi-exruder print.
     // For a print by objects, find the 1st printing object.
@@ -1133,6 +1161,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
     std::vector<const PrintInstance*> 					print_object_instances_ordering;
     std::vector<const PrintInstance*>::const_iterator 	print_object_instance_sequential_active;
     if (print.config().complete_objects.value) {
+        printf("\nprint 23");
         // Order object instances for sequential print.
         print_object_instances_ordering = sort_object_instances_by_model_order(print);
 //        print_object_instances_ordering = sort_object_instances_by_max_z(print);
@@ -1143,21 +1172,25 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
             if ((initial_extruder_id = tool_ordering.first_extruder()) != static_cast<unsigned int>(-1))
                 break;
         }
+        printf("\nprint 24");
         if (initial_extruder_id == static_cast<unsigned int>(-1))
             // No object to print was found, cancel the G-code export.
             throw Slic3r::SlicingError(_u8L("No extrusions were generated for objects."));
         // We don't allow switching of extruders per layer by Model::custom_gcode_per_print_z in sequential mode.
         // Use the extruder IDs collected from Regions.
         this->set_extruders(print.extruders());
+        printf("\nprint 25");
     } else {
         // Find tool ordering for all the objects at once, and the initial extruder ID.
         // If the tool ordering has been pre-calculated by Print class for wipe tower already, reuse it.
+        printf("\nprint 26");
         tool_ordering = print.tool_ordering();
         tool_ordering.assign_custom_gcodes(print);
         if (tool_ordering.all_extruders().empty())
             // No object to print was found, cancel the G-code export.
             throw Slic3r::SlicingError(_u8L("No extrusions were generated for objects."));
         has_wipe_tower = print.has_wipe_tower() && tool_ordering.has_wipe_tower();
+        printf("\nprint 27");
         initial_extruder_id = (has_wipe_tower && ! print.config().single_extruder_multi_material_priming) ?
             // The priming towers will be skipped.
             tool_ordering.all_extruders().back() :
@@ -1168,6 +1201,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
         this->set_extruders(tool_ordering.all_extruders());
         // Order object instances using a nearest neighbor search.
         print_object_instances_ordering = chain_print_object_instances(print);
+        printf("\nprint 28");
         m_layer_count = tool_ordering.layer_tools().size();
     }
     if (initial_extruder_id == (unsigned int)-1) {
@@ -1179,7 +1213,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
         assert(final_extruder_id != (unsigned int)-1);
     }
     print.throw_if_canceled();
-
+    printf("\nprint 29");
     m_cooling_buffer = make_unique<CoolingBuffer>(*this);
     m_cooling_buffer->set_current_extruder(initial_extruder_id);
 
@@ -1189,7 +1223,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
     // Label all objects so printer knows about them since the start.
     m_label_objects.init(print.objects(), print.config().gcode_label_objects, print.config().gcode_flavor);
     file.write(m_label_objects.all_objects_header());
-
+    printf("\nprint 30");
     // Update output variables after the extruders were initialized.
     m_placeholder_parser_integration.init(m_writer);
     // Let the start-up script prime the 1st printing tool.
@@ -1204,6 +1238,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
     this->placeholder_parser().set("has_wipe_tower", has_wipe_tower);
     this->placeholder_parser().set("has_single_extruder_multi_material_priming", has_wipe_tower && print.config().single_extruder_multi_material_priming);
     this->placeholder_parser().set("total_toolchanges", tool_ordering.toolchanges_count());
+    printf("\nprint 31");
     {
         BoundingBoxf bbox(print.config().bed_shape.values);
         assert(bbox.defined);
@@ -1239,7 +1274,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
             is_extruder_used[extruder_id] = true;
         this->placeholder_parser().set("is_extruder_used", new ConfigOptionBools(is_extruder_used));
     }
-
+    printf("\nprint 32");
     // Enable ooze prevention if configured so.
     DoExport::init_ooze_prevention(print, m_ooze_prevention);
 
@@ -1248,7 +1283,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
     this->_print_first_layer_chamber_temperature(file, print, start_gcode, config().chamber_temperature.get_at(initial_extruder_id), false, false);
     this->_print_first_layer_bed_temperature(file, print, start_gcode, initial_extruder_id, true);
     this->_print_first_layer_extruder_temperatures(file, print, start_gcode, initial_extruder_id, false);
-
+    printf("\nprint 33");
     // adds tag for processor
     file.write_format(";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), gcode_extrusion_role_to_string(GCodeExtrusionRole::Custom).c_str());
 
@@ -1270,7 +1305,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
 
     const Seams::Params params{Seams::Placer::get_params(print.full_print_config())};
     m_seam_placer.init(print.objects(), params, throw_if_canceled_func);
-
+    printf("\nprint 34");
     if (! (has_wipe_tower && print.config().single_extruder_multi_material_priming)) {
         // Set initial extruder only after custom start G-code.
         // Ugly hack: Do not set the initial extruder if the extruder is primed using the MMU priming towers at the edge of the print bed.
@@ -1281,6 +1316,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
 
     // Do all objects for each layer.
     if (print.config().complete_objects.value) {
+        printf("\nprint 35");
         size_t finished_objects = 0;
         const PrintObject *prev_object = (*print_object_instance_sequential_active)->print_object;
         for (; print_object_instance_sequential_active != print_object_instances_ordering.end(); ++ print_object_instance_sequential_active) {
@@ -1295,6 +1331,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
                 final_extruder_id   = tool_ordering.last_extruder();
                 assert(final_extruder_id != (unsigned int)-1);
             }
+            printf("\nprint 36");
             print.throw_if_canceled();
             this->set_origin(unscale((*print_object_instance_sequential_active)->shift));
             if (finished_objects > 0) {
@@ -1342,6 +1379,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
 
         file.write(m_label_objects.maybe_stop_instance());
     } else {
+        printf("\nprint 37");
         // Sort layers by Z.
         // All extrusion moves with the same top layer height are extruded uninterrupted.
         std::vector<std::pair<coordf_t, ObjectsLayerToPrint>> layers_to_print = collect_layers_to_print(print);
@@ -1399,6 +1437,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
             }
             print.throw_if_canceled();
         }
+        printf("\nprint 38");
         // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
         // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
         // and export G-code into file.
@@ -1409,7 +1448,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
             // Purge the extruder, pull out the active filament.
             file.write(m_wipe_tower->finalize(*this));
     }
-
+    printf("\nprint 39");
     // Write end commands to file.
     file.write(this->retract_and_wipe());
     file.write(m_writer.set_fan(0));
@@ -1437,6 +1476,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
         }
         file.writeln(this->placeholder_parser_process("end_gcode", print.config().end_gcode, m_writer.extruder()->id(), &config));
     }
+    printf("\nprint 40");
     file.write(m_writer.update_progress(m_layer_count, m_layer_count, true)); // 100%
     file.write(m_writer.postamble());
 
@@ -1463,6 +1503,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
         export_to_binary_gcode,
         m_processor.get_binary_data()
     );
+    printf("\nprint 41");
 
     if (!export_to_binary_gcode) {
         file.write_format("; objects_info = %s\n", m_label_objects.all_objects_header_singleline_json().c_str());
@@ -1507,6 +1548,7 @@ void GCodeGenerator::_do_export(Print& print, GCodeOutputStream &file, Thumbnail
             file.writeln(*line_M84);
         }
     }
+    printf("\nprint 42");
     print.throw_if_canceled();
 }
 
