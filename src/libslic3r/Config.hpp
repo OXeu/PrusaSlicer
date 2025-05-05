@@ -1928,7 +1928,7 @@ template<bool NULLABLE>
 class ConfigOptionEnumsGenericTempl : public ConfigOptionIntsTempl<NULLABLE>
 {
 public:
-    ConfigOptionEnumsGenericTempl(const t_config_enum_values* keys_map = nullptr) : keys_map(keys_map) {}
+    ConfigOptionEnumsGenericTempl(const t_config_enum_values* keys_map) : keys_map(keys_map) {}
     explicit ConfigOptionEnumsGenericTempl(const t_config_enum_values* keys_map, std::vector<int> values) : keys_map(keys_map) { this->values = values; }
 
     const t_config_enum_values* keys_map;
@@ -2277,7 +2277,7 @@ public:
             case coPercents:         { auto opt = new ConfigOptionPercentsNullable();         archive(*opt); return opt; }
             case coBools:            { auto opt = new ConfigOptionBoolsNullable();            archive(*opt); return opt; }
             case coFloatsOrPercents: { auto opt = new ConfigOptionFloatsOrPercentsNullable(); archive(*opt); return opt; }
-            default:                 throw ConfigurationError(std::string("ConfigOptionDef::load_option_from_archive(): Unknown nullable option type for option ") + this->opt_key);
+                default:                 throw ConfigurationError((boost::format("ConfigOptionDef::load_option_from_archive(): Unknown nullable option type for option: %1%, %2% ") % this->opt_key % this->type).str());
             }
         } else {
 		    switch (this->type) {

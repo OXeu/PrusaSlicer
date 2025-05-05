@@ -438,10 +438,15 @@ public:
     template<class Archive>
     void save(Archive & ar) const
     {
+        printf("PrintBase\n");
         ar(cereal::base_class<ObjectBase>(this));
+        printf("PrintBase: m_model\n");
         ar( m_model );
+        printf("PrintBase: m_full_print_config\n");
         ar( m_full_print_config );
+        printf("PrintBase: m_placeholder_parser\n");
         ar( m_placeholder_parser );
+        printf("PrintBase: m_cancel_status\n");
         ar( m_cancel_status.load() );
     }
     template<class Archive>
@@ -630,7 +635,9 @@ public:
     template<class Archive>
     void serialize(Archive & ar)
     {
+        printf("PrintBaseWithState\n");
         ar(cereal::base_class<PrintBase>(this));
+        printf("PrintBaseWithState: m_state\n");
         ar( m_state );
     }
     using                           PrintStepEnum       = PrintStepEnumType;

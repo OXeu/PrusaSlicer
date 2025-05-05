@@ -935,6 +935,7 @@ void GCodeGenerator::_do_export(Print& print_sub, GCodeOutputStream &file, Thumb
         cereal::BinaryOutputArchive ar(os);
         ar(print_sub);
     }
+    printf("\nserialize success: %s", os.str().data());
     Print print_gen;
     {
         cereal::BinaryInputArchive iarchive(os); // Create an input archive

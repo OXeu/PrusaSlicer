@@ -210,7 +210,7 @@ enum TowerSpeeds : int {
     tsLayer8,
     tsLayer11,
     tsLayer14,
-    tsLayer18, 
+    tsLayer18,
     tsLayer22,
     tsLayer24,
 };
@@ -525,14 +525,24 @@ public: \
         if (! (BOOST_PP_TUPLE_ELEM(1, elem) == rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return false;
 #define PRINT_CONFIG_CLASS_ELEMENT_SAVE(r, data, elem) \
     BOOST_PP_TUPLE_ELEM(2, 1, elem).serialize()
+#define PRINT_CONFIG_CLASS_ELEMENT_LOAD(r, data, elem) \
+    { \
+        std::string temp; \
+        ar(temp); \
+        BOOST_PP_TUPLE_ELEM(2, 1, elem).deserialize(temp); \
+    }
 #define PRINT_CONFIG_CLASS_DEFINE(CLASS_NAME, PARAMETER_DEFINITION_SEQ) \
 class CLASS_NAME : public StaticPrintConfig { \
     STATIC_PRINT_CONFIG_CACHE(CLASS_NAME) \
 public: \
     friend class cereal::access; \
     template<class Archive> \
-    void serialize(Archive& ar) { \
+    void save(Archive& ar) const { \
         ar( BOOST_PP_SEQ_ENUM( BOOST_PP_SEQ_TRANSFORM(PRINT_CONFIG_CLASS_ELEMENT_SAVE, _, PARAMETER_DEFINITION_SEQ) ) ); \
+    } \
+    template<class Archive> \
+    void load(Archive& ar) { \
+        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_LOAD, _, PARAMETER_DEFINITION_SEQ) \
     } \
     BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_DEFINITION, _, PARAMETER_DEFINITION_SEQ) \
     size_t hash() const throw() \

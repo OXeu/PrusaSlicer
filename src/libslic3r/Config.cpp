@@ -1209,6 +1209,8 @@ t_config_option_keys DynamicConfig::equal(const DynamicConfig &other) const
 
 }
 
+#include "libslic3r/Utils/CerealUtils.hpp"
+#include <cereal/archives/binary.hpp>
 #include <cereal/types/polymorphic.hpp> // IWYU pragma: keep
 
 CEREAL_REGISTER_TYPE(Slic3r::ConfigOption)
