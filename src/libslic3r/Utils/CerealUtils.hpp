@@ -22,9 +22,9 @@ if (FIELD != nullptr) { \
     bool isNull; \
     ar(isNull); \
     if (!isNull) { \
-        CLASS data; \
-        ar(data); \
-        FIELD = &data; \
+        CLASS* data = new CLASS(); \
+        ar(*data); \
+        FIELD = data; \
     } \
 }
 
@@ -38,14 +38,15 @@ for (const auto v: FIELD) { \
     size_t size; \
     ar(size); \
     for (int i = 0; i < size; ++i) { \
-        CLASS data; \
-        ar(data); \
-        FIELD.emplace_back(&data); \
+        CLASS* data = new CLASS(); \
+        ar(*data); \
+        FIELD.emplace_back(data); \
     } \
 }
 
 namespace Slic3r {
     class PrintBase;
+    class PrintObject;
     class Print;
     class Model;
 }
@@ -62,6 +63,7 @@ namespace cereal
     template <class Archive> struct specialize<Archive, Slic3r::Model, cereal::specialization::member_load_save> {};
     template <class Archive> struct specialize<Archive, Slic3r::Print, cereal::specialization::member_load_save> {};
     template <class Archive> struct specialize<Archive, Slic3r::PrintBase, cereal::specialization::member_load_save> {};
+    template <class Archive> struct specialize<Archive, Slic3r::PrintObject, cereal::specialization::member_load_save> {};
 
 }
 #endif //CEREALUTILS_HPP

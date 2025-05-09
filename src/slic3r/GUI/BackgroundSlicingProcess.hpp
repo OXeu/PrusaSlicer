@@ -20,6 +20,8 @@
 #include "libslic3r/SLAPrint.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "zmqpp/context.hpp"
+#include "zmqpp/socket.hpp"
 
 
 namespace boost { namespace filesystem { class path; } }

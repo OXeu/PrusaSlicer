@@ -618,7 +618,7 @@ void GCodeGenerator::do_export(Print* print, const char* path, GCodeProcessorRes
     m_processor.initialize(path_tmp);
     m_processor.set_print(print);
     m_processor.get_binary_data() = bgcode::binarize::BinaryData();
-    GCodeOutputStream file(boost::nowide::fopen(path_tmp.c_str(), "wb"), m_processor);
+    GCodeOutputStream file(path_tmp, boost::nowide::fopen(path_tmp.c_str(), "wb"), m_processor);
     if (! file.is_open())
         throw Slic3r::RuntimeError(std::string("G-code export to ") + path + " failed.\nCannot open the file for writing.\n");
 
@@ -927,22 +927,120 @@ static inline std::optional<std::string> find_M84(const std::string &gcode) {
     return std::nullopt;
 }
 
-void GCodeGenerator::_do_export(Print& print_sub, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb)
-{
-    // std::ofstream os("out.bin", std::ios_base::binary);
-    std::stringstream os;
-    {
-        cereal::BinaryOutputArchive ar(os);
-        ar(print_sub);
+ void GCodeGenerator::operator()() const {
+    for (;;) {
+        if (socket != nullptr) {
+            // receive the message
+            zmqpp::message message;
+            // decompose the message
+            socket->receive(message);
+            int op;
+            std::string data;
+            message >> op >> data;
+            handle_rpc(op, data);
+            printf("Received msg, op: %d, size: %lu.\n", op, data.size());
+        } else {
+            using namespace std::chrono_literals;
+            std::this_thread::sleep_for(2000ms);
+        }
     }
-    printf("\nserialize success: %s", os.str().data());
-    Print print_gen;
-    {
-        cereal::BinaryInputArchive iarchive(os); // Create an input archive
+}
 
-        iarchive(print_gen); // Read the data from the archive
+void GCodeGenerator::start_server(bool is_server) {
+    if (is_server) {
+        // server
+        const std::string endpoint = "tcp://*:4242";
+        socket = new zmqpp::socket(context, zmqpp::socket_type::reply);
+        printf("Binding to %s ...\n", endpoint.c_str());
+        socket->bind(endpoint);
+        request_handler_thread = new std::thread(this);
+    } else {
+        // client
+        const std::string clientEndpoint = "tcp://localhost:4242";
+        socket = new zmqpp::socket(context, zmqpp::socket_type::request);
+        printf("Opening connection to %s ...", clientEndpoint.c_str());
+        socket->connect(clientEndpoint);
     }
-    Print& print = print_gen;
+}
+
+void GCodeGenerator::stop_server() {
+    if (request_handler_thread != nullptr) {
+        request_handler_thread->detach();
+        free(request_handler_thread);
+        request_handler_thread = nullptr;
+    }
+    if (socket != nullptr) {
+        socket->close();
+        free(socket);
+        socket = nullptr;
+    }
+}
+
+void GCodeGenerator::send_rpc(const int op, const std::string &data) const {
+    if (socket != nullptr) {
+        zmqpp::message message;
+        message << op << data;
+        socket->send(message);
+    }
+}
+
+std::string file_to_string(const std::string& filepath) {
+    std::ifstream file(filepath, std::ios::binary);
+    if (!file) {
+        return ""; // 文件打开失败
+    }
+
+    std::ostringstream oss;
+    oss << file.rdbuf(); // 读取整个文件
+    return oss.str();
+}
+
+void GCodeGenerator::handle_rpc(int op, const std::string& data) {
+    if (op == 0x01) {
+        Print print;
+        std::stringstream os;
+        os << data;
+        {
+            cereal::BinaryInputArchive iarchive(os);
+            iarchive(print);
+            std::string path;
+            iarchive(path);
+            boost::nowide::remove(path.c_str());
+
+            std::string path_tmp(path);
+            path_tmp += ".tmp";
+
+            m_processor.initialize(path_tmp);
+            m_processor.set_print(&print);
+            m_processor.get_binary_data() = bgcode::binarize::BinaryData();
+            FILE* f = fopen(path_tmp.c_str(), "wb");
+            GCodeOutputStream file(f, m_processor);
+            _do_export_rpc(print, file, nullptr);
+            std::string gcode_stream = file_to_string(path_tmp);
+            send_rpc(0x02, gcode_stream);
+        }
+    }
+}
+
+void GCodeGenerator::_do_export(Print& print_sub, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb) {
+    std::stringstream os;
+    cereal::BinaryOutputArchive ar(os);
+    ar(print_sub);
+    ar(file.path);
+    send_rpc(0x01, os.str());
+    if (socket != nullptr) {
+        zmqpp::message message;
+        socket->receive(message);
+        int op;
+        std::string data;
+        message >> op >> data;
+        if (op == 0x02) {
+            file.write(data);
+        }
+    }
+}
+
+void GCodeGenerator::_do_export_rpc(Print &print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb) {
     printf("\nprint success: %p", &print);
     const bool export_to_binary_gcode = print.full_print_config().option<ConfigOptionBool>("binary_gcode")->value;
     printf("\nprint 1: export to binary: %d", export_to_binary_gcode);

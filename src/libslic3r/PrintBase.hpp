@@ -452,10 +452,15 @@ public:
     template<class Archive>
     void load(Archive & ar)
     {
+        printf("PrintBase\n");
         ar(cereal::base_class<ObjectBase>(this));
+        printf("PrintBase: m_model\n");
         ar( m_model );
+        printf("PrintBase: m_full_print_config\n");
         ar( m_full_print_config );
+        printf("PrintBase: m_placeholder_parser\n");
         ar( m_placeholder_parser );
+        printf("PrintBase: m_cancel_status\n");
         CancelStatus status;
         ar( status );
         m_cancel_status.exchange(status);

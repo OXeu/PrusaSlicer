@@ -524,11 +524,18 @@ public: \
         if (BOOST_PP_TUPLE_ELEM(1, elem) < rhs.BOOST_PP_TUPLE_ELEM(1, elem)) return true; \
         if (! (BOOST_PP_TUPLE_ELEM(1, elem) == rhs.BOOST_PP_TUPLE_ELEM(1, elem))) return false;
 #define PRINT_CONFIG_CLASS_ELEMENT_SAVE(r, data, elem) \
-    BOOST_PP_TUPLE_ELEM(2, 1, elem).serialize()
+    { \
+    auto v = BOOST_PP_TUPLE_ELEM(2, 1, elem).serialize(); \
+    printf("save config %s: %s\n", STRINGIFY(elem), v.c_str()); \
+    ar(v); \
+    }
+#define STRINGIFY(x) #x
 #define PRINT_CONFIG_CLASS_ELEMENT_LOAD(r, data, elem) \
     { \
+        printf("load config %s\n", STRINGIFY(elem)); \
         std::string temp; \
         ar(temp); \
+        printf("temp: %s\n", temp.c_str()); \
         BOOST_PP_TUPLE_ELEM(2, 1, elem).deserialize(temp); \
     }
 #define PRINT_CONFIG_CLASS_DEFINE(CLASS_NAME, PARAMETER_DEFINITION_SEQ) \
@@ -538,7 +545,7 @@ public: \
     friend class cereal::access; \
     template<class Archive> \
     void save(Archive& ar) const { \
-        ar( BOOST_PP_SEQ_ENUM( BOOST_PP_SEQ_TRANSFORM(PRINT_CONFIG_CLASS_ELEMENT_SAVE, _, PARAMETER_DEFINITION_SEQ) ) ); \
+        BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_SAVE, _, PARAMETER_DEFINITION_SEQ) \
     } \
     template<class Archive> \
     void load(Archive& ar) { \
@@ -588,8 +595,12 @@ class CLASS_NAME : PRINT_CONFIG_CLASS_DERIVED_CLASS_LIST(CLASSES_PARENTS_TUPLE) 
 public: \
     friend class cereal::access; \
     template<class Archive> \
-    void serialize(Archive& ar) { \
-        ar( BOOST_PP_SEQ_ENUM( BOOST_PP_SEQ_TRANSFORM(PRINT_CONFIG_CLASS_ELEMENT_SAVE, _, PARAMETER_DEFINITION_SEQ) ) ); \
+    void save(Archive& ar) const { \
+    BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_SAVE, _, PARAMETER_DEFINITION_SEQ) \
+    } \
+    template<class Archive> \
+    void load(Archive& ar) { \
+    BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CLASS_ELEMENT_LOAD, _, PARAMETER_DEFINITION_SEQ) \
     } \
     PARAMETER_DEFINITION \
     size_t hash() const throw() \

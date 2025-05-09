@@ -355,34 +355,45 @@ class PrintObject : public PrintObjectBaseWithState<Print, PrintObjectStep, posC
 {
     friend class cereal::access;
     template<class Archive>
-    void serialize(Archive & ar)
+    void save(Archive & ar) const
     {
-        printf("m_instance: %lu", m_instances.size());
-        ar(m_size, m_config, m_trafo, m_instances, m_center_offset);
+        printf("PrintObject m_size\n");
+        ar(m_size);
+        printf("PrintObject m_config\n");
+        ar(m_config);
+        printf("PrintObject m_trafo\n");
+        ar(m_trafo);
+        printf("PrintObject m_instances\n");
+        ar(m_instances);
+        printf("PrintObject m_center_offset\n");
+        ar(m_center_offset);
+        printf("PrintObject m_shared_regions\n");
         CEREAL_AR_PTR_SAVE(m_shared_regions)
+        printf("PrintObject m_slicing_params\n");
         ar(m_slicing_params);
+        printf("PrintObject m_typed_slices\n");
         ar(m_typed_slices);
     }
-    /*template<class Archive>
-      void save(Archive & ar, PrintObject const & m)
-    {
-        printf("m_instance: %lu", m.m_instances.size());
-        ar(m.m_size, m.m_config, m.m_trafo, m.m_instances, m.m_center_offset);
-        CEREAL_AR_PTR_SAVE(m.m_shared_regions)
-        ar(m.m_slicing_params);
-        ar(m.m_typed_slices);
-    }
     template<class Archive>
-      void load(Archive & ar, PrintObject & m)
+    void load(Archive & ar)
     {
-        ar(m.m_size, m.m_config, m.m_trafo, m.m_instances, m.m_center_offset);
-        CEREAL_AR_PTR_LOAD(PrintObjectRegions, m.m_shared_regions)
-        ar(m.m_slicing_params);
-        ar(m.m_typed_slices);
-        for (auto& instance: m.m_instances) {
-            instance.print_object = this;
-        }
-    }*/
+        printf("PrintObject m_size\n");
+        ar(m_size);
+        printf("PrintObject m_config\n");
+        ar(m_config);
+        printf("PrintObject m_trafo\n");
+        ar(m_trafo);
+        printf("PrintObject m_instances\n");
+        ar(m_instances);
+        printf("PrintObject m_center_offset\n");
+        ar(m_center_offset);
+        printf("PrintObject m_shared_regions\n");
+        CEREAL_AR_PTR_LOAD(PrintObjectRegions, m_shared_regions)
+        printf("PrintObject m_slicing_params\n");
+        ar(m_slicing_params);
+        printf("PrintObject m_typed_slices\n");
+        ar(m_typed_slices);
+    }
 private: // Prevents erroneous use by other classes.
     typedef PrintObjectBaseWithState<Print, PrintObjectStep, posCount> Inherited;
 
@@ -751,7 +762,6 @@ public:
     {
         ar(cereal::base_class<PrintBaseWithState>(this));
         ar( m_config, m_print_statistics, m_default_object_config, m_default_region_config );
-        printf("objects: %lu", m_objects.size());
         CEREAL_AR_VEC_PTR_SAVE(m_objects)
         CEREAL_AR_VEC_PTR_SAVE(m_print_regions)
     }
