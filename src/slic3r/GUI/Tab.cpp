@@ -1729,6 +1729,12 @@ void TabPrint::build()
         option.opt.full_width = true;
         optgroup->append_single_option_line(option);
 
+        optgroup = page->new_optgroup(L("Remote Slicing"));
+        optgroup->append_single_option_line("enable_remote_slicing");
+        option = optgroup->get_option("remote_slicing_endpoint");
+        option.opt.full_width = true;
+        optgroup->append_single_option_line(option);
+
         optgroup = page->new_optgroup(L("Other"));
 
         create_line_with_widget(optgroup.get(), "gcode_substitutions", "g-code-substitutions_301694", [this](wxWindow* parent) {

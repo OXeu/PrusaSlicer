@@ -964,6 +964,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBool,               only_retract_when_crossing_perimeters))
     ((ConfigOptionBool,               ooze_prevention))
     ((ConfigOptionString,             output_filename_format))
+    ((ConfigOptionString,     remote_slicing_endpoint))
+    ((ConfigOptionBool,     enable_remote_slicing))
     ((ConfigOptionFloat,              perimeter_acceleration))
     ((ConfigOptionStrings,            post_process))
     ((ConfigOptionBool,               prefer_clockwise_movements))
@@ -1013,6 +1015,8 @@ std::string validate(const FullPrintConfig &config);
 PRINT_CONFIG_CLASS_DEFINE(
     SLAPrintConfig,
     ((ConfigOptionString,     output_filename_format))
+    ((ConfigOptionString,     remote_slicing_endpoint))
+    ((ConfigOptionBool,     enable_remote_slicing))
 )
 
 PRINT_CONFIG_CLASS_DEFINE(

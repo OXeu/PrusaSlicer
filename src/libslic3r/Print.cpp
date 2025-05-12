@@ -143,6 +143,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "notes",
         "only_retract_when_crossing_perimeters",
         "output_filename_format",
+        "remote_slicing_endpoint",
+        "enable_remote_slicing",
         "perimeter_acceleration",
         "post_process",
         "gcode_substitutions",

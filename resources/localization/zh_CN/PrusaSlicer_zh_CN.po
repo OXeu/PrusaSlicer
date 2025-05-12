@@ -18147,6 +18147,16 @@ msgstr "输出选项"
 msgid "Sequential printing"
 msgstr "顺序打印"
 
+#: src/slic3r/GUI/Tab.cpp:1709
+msgid "Remote Slicing"
+msgstr "远程切片服务"
+
+msgid "Enable Remote Slicing"
+msgstr "启用远程切片服务"
+
+msgid "Remote Slicing Endpoint"
+msgstr "远程切片服务器地址"
+
 #: src/slic3r/GUI/Tab.cpp:1717
 msgid ""
 "Note: When using this option, the Arrange function automatically accounts "

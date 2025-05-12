@@ -2418,6 +2418,19 @@ void PrintConfigDef::init_fff_params()
     def->full_width = true;
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionString("[input_filename_base].gcode"));
+    
+    def = this->add("remote_slicing_endpoint", coString);
+    def->label = L("Remote Slicing Endpoint");
+    def->tooltip = L("The URL of the remote slicing endpoint. This is used to send the G-code to the remote server. e.g. tcp://localhost:5566");
+    def->full_width = true;
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionString("tcp://localhost:5566"));
+
+    def = this->add("enable_remote_slicing", coBool);
+    def->label = L("Enable Remote Slicing");
+    def->tooltip = L("Enable remote slicing. This will send models & params to the remote server and return G-Code.");
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("overhangs", coBool);
     def->label = L("Detect bridging perimeters");

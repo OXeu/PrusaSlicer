@@ -912,6 +912,8 @@ bool SLAPrint::invalidate_state_by_config_options(const std::vector<t_config_opt
         "max_print_height"sv,
         "printer_technology"sv,
         "output_filename_format"sv,
+        "enable_remote_slicing"sv,
+        "remote_slicing_endpoint"sv,
         "fast_tilt_time"sv,
         "slow_tilt_time"sv,
         "high_viscosity_tilt_time"sv,

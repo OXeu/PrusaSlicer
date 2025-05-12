@@ -78,6 +78,8 @@ PresetBundle::PresetBundle() :
 
     this->sla_prints.default_preset().config.optptr("sla_print_settings_id", true);
     this->sla_prints.default_preset().config.opt_string("output_filename_format", true) = "[input_filename_base].sl1";
+    this->sla_prints.default_preset().config.opt_string("remote_slicing_endpoint", true) = "tcp://localhost:5566";
+    this->sla_prints.default_preset().config.set("enable_remote_slicing",false, true);
     this->sla_prints.default_preset().compatible_printers_condition();
     this->sla_prints.default_preset().inherits();
 
